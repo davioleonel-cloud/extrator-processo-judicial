@@ -1,6 +1,20 @@
 # Backlog do Projeto
 
-## MVP
+## Entrega técnica limitada — disponível
+
+- [x] Instalação explícita Python 3.10+, pacote independente e CLI local
+- [x] Um PDF, páginas ordenadas, hash e avisos de ausência de texto/OCR necessário
+- [x] Identificação inicial conservadora, múltiplos candidatos e fontes
+- [x] Candidatos de nomeação, quesitos por origem ou indefinida e inicial
+- [x] Revisão JSON com histórico, validação das fontes e proteção contra sobrescrita
+- [x] JSON/Markdown de rascunho, checklist documental e conclusão em aberto
+- [x] Confirmação humana de tipo da perícia e objeto específico separado
+- [x] Testes sintéticos reais de leitura, extração, revisão, persistência e CLI
+
+Dependência de execução: pypdf (BSD-3-Clause); comandos e arquitetura no README.
+Os itens abaixo permanecem como objetivos de expansão, não concluídos.
+
+## Produto completo planejado
 
 ### 1. Importação e leitura do PDF
 - aceitar um PDF único
@@ -39,12 +53,11 @@
 ### Organização estrutural avançada
 - separar documentos por categoria
 - marcar dados incompletos ou conflitantes
-- permitir revisão de extrações automáticas
+- ampliar a revisão persistida já disponível, sem perder versões ou fontes
 
 ### Classificação do tipo de perícia
-- trabalhista
-- previdenciária
-- confirmar
+- trabalhista/previdenciária somente com confirmação humana
+- a confirmar como estado inicial, sem inferência final por palavra-chave
 - destacar pontos específicos de cada tipo
 
 ## Fase 3
@@ -58,17 +71,20 @@
 ## Fase 4
 
 ### Funcionalidades de produção
-- exportação em JSON
+- ampliar exportação JSON já disponível e Markdown editável
 - exportação em PDF/texto estruturado
 - relatórios por processo
 - exportação para revisão humana e edição final
 
 ## Pendências técnicas
 
-- definir stack de leitura de PDF
-- confirmar bibliotecas para extração de texto e OCR
-- confirmar formato de saída para checklist e pré-laudo
-- validar comportamentos com dados reais anonimizados
+- ampliar leitura textual pypdf e segmentação com fontes por página
+- selecionar OCR em futura entrega, com dependências/licença e revisão
+- criar checklist especializado só após tipo e objeto confirmados por humano
+- ampliar inicial, inventário médico/CTPS e linha do tempo com datas separadas
+- não inferir atividade real pelo cargo; manter contradições e pontos a esclarecer
+- implementar interface visual local depois da CLI; upload web não entregue
+- validar novos comportamentos com exemplos exclusivamente sintéticos no repositório público
 
 ## Critérios de pronto
 
@@ -78,4 +94,3 @@ Uma tarefa está pronta quando:
 - tem resultado esperado definido
 - tem dependências reconhecidas
 - passa por revisão humana antes de ser considerada entregue
-

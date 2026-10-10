@@ -1,4 +1,5 @@
 import hashlib
+import logging
 
 import pytest
 
@@ -102,3 +103,22 @@ def test_pdf_protegido(criar_pdf, senha):
 def test_pdf_sem_paginas(criar_pdf):
     with pytest.raises(ErroExtrator, match="não contém páginas"):
         ler_pdf(criar_pdf([]))
+
+
+def test_avisos_internos_nao_expoem_conteudo(pdf_ficticio, monkeypatch, caplog):
+    from extrator_judicial import pdf
+    reader = pdf.PdfReader
+    logger = logging.getLogger("pypdf")
+    handlers = logger.handlers[:]
+    propagacao = logger.propagate
+
+    def leitor_com_aviso(*args, **kwargs):
+        logging.getLogger("pypdf._reader").warning("Conteúdo documental fictício privado")
+        return reader(*args, **kwargs)
+
+    monkeypatch.setattr(pdf, "PdfReader", leitor_com_aviso)
+    with caplog.at_level(logging.WARNING):
+        ler_pdf(pdf_ficticio)
+    assert "documental fictício privado" not in caplog.text
+    assert logger.handlers == handlers
+    assert logger.propagate == propagacao

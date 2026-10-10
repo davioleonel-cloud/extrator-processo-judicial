@@ -25,7 +25,11 @@ def ler_pdf(caminho):
     """Mantém texto uma vez por página; hash calculado em blocos."""
     logger = logging.getLogger("pypdf")
     anterior = logger.disabled
+    propagacao = logger.propagate
+    handlers = logger.handlers[:]
     logger.disabled = True
+    logger.handlers = [logging.NullHandler()]
+    logger.propagate = False
     try:
         with Path(caminho).open("rb") as arquivo:
             identificador = _hash(arquivo)
@@ -58,7 +62,11 @@ def ler_pdf(caminho):
         raise ErroExtrator("PDF não encontrado.") from None
     except OSError:
         raise ErroExtrator("Não foi possível ler o PDF local.") from None
-    except (PyPdfError, TypeError, KeyError, IndexError, RecursionError, UnicodeError):
+    except ErroExtrator:
+        raise
+    except (PyPdfError, ValueError, TypeError, KeyError, IndexError, RecursionError, OverflowError):
         raise ErroExtrator("PDF inválido ou corrompido; leitura interrompida.") from None
     finally:
         logger.disabled = anterior
+        logger.handlers = handlers
+        logger.propagate = propagacao

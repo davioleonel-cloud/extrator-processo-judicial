@@ -11,6 +11,17 @@ from .revisao import classificar, revisar, validar
 
 
 class ParserPortugues(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._positionals.title = "argumentos posicionais"
+        self._optionals.title = "opções"
+
+    def format_usage(self):
+        return super().format_usage().replace("usage:", "uso:", 1)
+
+    def format_help(self):
+        return super().format_help().replace("usage:", "uso:", 1)
+
     def error(self, message):
         self.print_usage(sys.stderr)
         self.exit(2, "Erro: argumentos inválidos. Consulte --help.\n")
@@ -71,6 +82,9 @@ def main(argv=None):
         salvar_arquivos(saidas, protegidos, argumentos.sobrescrever)
     except ErroExtrator as erro:
         print(f"Erro: {erro}", file=sys.stderr)
+        return 1
+    except (OSError, RuntimeError):
+        print("Erro: não foi possível acessar os caminhos locais informados.", file=sys.stderr)
         return 1
     print("Resultado local salvo. RASCUNHO — REVISÃO NECESSÁRIA.")
     return 0

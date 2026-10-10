@@ -75,7 +75,6 @@ def extrair(documento, paginas):
             for campo, padrao in PADROES.items():
                 match = padrao.match(normalizar(limpa))
                 if match:
-                    # Normalização remove acentos sem mudar posições dos rótulos usuais.
                     valor = re.split(r"[:–-]", limpa, maxsplit=1)[1].strip()
                     adicionar(campo, valor, pagina["numero"], limpa)
             cabecalho = _cabecalho(limpa)
