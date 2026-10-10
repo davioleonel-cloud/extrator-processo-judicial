@@ -12,6 +12,8 @@
 - [x] Testes sintéticos reais de leitura, extração, revisão, persistência e CLI
 - [x] Comando `listar` (IDs, campos, estados e páginas, sem conteúdo documental)
 - [x] Gerador de PDF fictício offline e roteiro ponta a ponta (bash/PowerShell, CI)
+- [x] Formato PJe: órgão julgador, nomeação em substituição, quesitos numerados
+- [x] Inicial PJe: seções, itens de pedido, datas e CID citados (alegações, com páginas)
 
 Dependência de execução: pypdf (BSD-3-Clause); comandos e arquitetura no README.
 Os itens abaixo permanecem como objetivos de expansão, não concluídos.

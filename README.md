@@ -24,6 +24,14 @@ legados permanecem preservados e não fazem parte desta instalação.
   do texto corrido não são localizados.
   São candidatos, **não segmentação perfeita**. Texto e numeração dos quesitos
   permanecem originais; origens diferentes não são concatenadas.
+- Petição inicial em PDFs do PJe: delimitada pelas páginas com o mesmo ID de
+  assinatura da página 1 (a conferir). Dentro dela, seções numeradas em
+  maiúsculas (com páginas inicial e final), cada item de "DOS PEDIDOS"
+  (`a.`, `b.`…, subitens mantidos), datas citadas com a linha vizinha e CID
+  citados. Tudo é **alegação** a revisar: o tipo de cada data (emissão,
+  atendimento, início alegado) e a atividade real ficam para o perito; cargo
+  não vira atividade. O Markdown ganha um resumo "Petição inicial".
+  Sem rodapé PJe, a inicial não é delimitada e nada disso é gerado.
 - Revisão por comandos, com confirmação, correção e rejeição persistidas.
 - Exportação JSON e Markdown editável, com ficha, fontes, páginas, avisos,
   pendências, checklist **documental genérico** e esqueleto de pré-laudo.
@@ -175,8 +183,8 @@ Blocos são limitados à página e ao próximo indicador reconhecido:
 **confira continuações e atribuição de origem no original**.
 Ausência de candidato não demonstra ausência do documento.
 
-Próximas entregas: inicial completa (pedido, motivo, doença alegada, datas),
-inventário médico/CTPS, datas separadas de emissão/atendimento/início alegado,
+Próximas entregas: motivo e doença alegada descritos em texto corrido na inicial,
+inventário médico/CTPS, classificação humana das datas (emissão/atendimento/início alegado),
 histórico e linha do tempo, OCR e interface visual local. Cargo não deve virar
 atividade efetiva inferida. Evidências contraditórias e informações a esclarecer
 devem permanecer rastreáveis. Checklist especializado depende de classificação
