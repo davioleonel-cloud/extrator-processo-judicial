@@ -180,3 +180,37 @@ def test_exatamente_um_pdf_e_erros_argumentos(tmp_path, capsys):
         main(["extrair", "/segredo/a.pdf", "/segredo/b.pdf", "--saida", str(tmp_path / "r.json")])
     assert erro.value.code == 2
     assert "/segredo" not in capsys.readouterr().err
+
+
+def test_listar_mostra_ids_sem_conteudo_documental(pdf_ficticio, tmp_path, capsys):
+    inicial = tmp_path / "inicial.json"
+    revisado = tmp_path / "revisado.json"
+    assert main(["extrair", str(pdf_ficticio), "--saida", str(inicial)]) == 0
+    dados = carregar(inicial)
+    assert main([
+        "revisar", str(pdf_ficticio), "--revisao", str(inicial),
+        "--candidato", "c0002", "--acao", "rejeitar", "--saida", str(revisado),
+    ]) == 0
+    capsys.readouterr()
+    antes = sorted(p.name for p in tmp_path.iterdir())
+    assert main(["listar", str(pdf_ficticio), "--revisao", str(revisado)]) == 0
+    saida = capsys.readouterr().out
+    assert sorted(p.name for p in tmp_path.iterdir()) == antes
+    for candidato in dados["candidatos"]:
+        assert candidato["id"] in saida
+    assert "c0002  autores          rejeitado" in saida
+    assert "quesitos         a_revisar  juiz" in saida
+    assert "Tipo de perícia: a_confirmar." in saida
+    assert "Pessoa Fictícia" not in saida and "Pergunta" not in saida
+    assert str(tmp_path) not in saida
+
+
+def test_listar_recusa_revisao_de_outro_pdf(pdf_ficticio, tmp_path, criar_pdf, capsys):
+    inicial = tmp_path / "inicial.json"
+    assert main(["extrair", str(pdf_ficticio), "--saida", str(inicial)]) == 0
+    outro = criar_pdf(["Outro conteúdo fictício"], nome="outro.pdf")
+    assert main(["listar", str(outro), "--revisao", str(inicial)]) == 1
+    assert "hash diferente" in capsys.readouterr().err
+    with pytest.raises(SystemExit) as erro:
+        main(["listar", str(pdf_ficticio), "--revisao", str(inicial), "--saida", "x.json"])
+    assert erro.value.code == 2
