@@ -1,471 +1,137 @@
-# 🧪 TESTE COMPLETO - Extrator de Processos Judiciais
+# Roteiro de teste completo — extrator judicial
 
-## Status: PRONTO PARA USAR
+Roteiro para conferir, com **dados exclusivamente fictícios**, todo o fluxo da
+CLI: extrair → listar → revisar → classificar → exportar. Instalação,
+arquitetura e limites estão no `README.md`.
 
-Este documento fornece um roteiro passo a passo para testar a versão nova do extrator (`copilot/nova-base-tecnica-extrator-judicial`).
+Toda saída continua sendo **RASCUNHO — REVISÃO NECESSÁRIA**. O teste confere o
+funcionamento documental; não valida conteúdo pericial.
 
----
+## 1. Teste automático (recomendado)
 
-## ✅ PRÉ-REQUISITOS
+Na raiz do clone, com Python 3.10+:
 
 ```bash
-# Python 3.10+
-python3 --version
-
-# Git
-git --version
+bash scripts_teste/teste_completo.sh                 # Linux/macOS
 ```
 
----
-
-## 📥 PASSO 1: Preparar Ambiente
-
-### 1.1 Clonar repositório
-```bash
-git clone https://github.com/davioleonel-cloud/extrator-processo-judicial.git
-cd extrator-processo-judicial
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts_teste\teste_completo.ps1   # Windows
 ```
 
-### 1.2 Ir para branch de desenvolvimento
-```bash
-git checkout copilot/nova-base-tecnica-extrator-judicial
-# ou
-git checkout teste-final-completo
-```
+O roteiro usa o `extrator-judicial` já instalado; se não houver, cria `.venv`
+e instala o pacote e o pytest. Em seguida roda os testes automatizados, gera um
+PDF fictício em diretório temporário, percorre todos os comandos, confere as
+proteções e apaga os temporários. `entradas/` e `saidas/` não são lidos nem
+alterados. Termina com código 0 somente se todas as etapas passarem; o mesmo
+roteiro bash roda no CI.
 
-### 1.3 Criar ambiente virtual
+## 2. Teste manual, passo a passo
+
+### 2.1 Ambiente
+
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# ou
-.venv\Scripts\activate  # Windows
-```
-
-### 1.4 Instalar pacotes
-```bash
-pip install --upgrade pip
-pip install -e .
-pip install pytest flake8
-```
-
-### 1.5 Verificar instalação
-```bash
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install -e . pytest flake8
+python -m pytest
+python -m flake8 src tests --max-line-length=127
 extrator-judicial --help
 ```
 
-✅ Se vir a ajuda do CLI, tudo está instalado!
+### 2.2 PDF fictício
 
----
-
-## 🧪 PASSO 2: Testes Unitários
-
-### 2.1 Rodar testes
-```bash
-python -m pytest -v
-```
-
-### 2.2 Verificar cobertura
-```bash
-python -m pytest --cov=src/extrator_judicial tests/
-```
-
-### 2.3 Lint do código
-```bash
-python -m flake8 src tests --max-line-length=127
-```
-
-✅ Se todos os testes passarem, o código está estruturalmente ok.
-
----
-
-## 📄 PASSO 3: Teste de Extração (Use o PDF Fictício)
-
-### 3.1 Preparar diretórios
 ```bash
 mkdir -p entradas saidas
+python teste_pdfs/gerar_pdf_ficticio.py entradas/processo_ficticio.pdf
 ```
 
-### 3.2 Gerar PDF fictício para teste
-Os testes sintéticos já criam PDFs. Você pode usar um deles ou criar manualmente:
+O gerador usa apenas pypdf e funciona offline. O PDF tem 3 páginas: rótulos de
+identificação, nomeação, quesitos do juiz, do autor e da ré, e a petição
+inicial; a página 2 não tem texto, para conferir o aviso **necessita OCR**.
+PDFs são ignorados pelo Git; não versione o arquivo gerado.
 
-```bash
-# Opção A: Usar script Python para criar PDF de teste
-python3 -c "
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
+### 2.3 Extrair e listar
 
-c = canvas.Canvas('entradas/processo_ficticio.pdf', pagesize=letter)
-c.drawString(100, 750, 'PROCESSO JUDICIAL FICTÍCIO')
-c.drawString(100, 730, 'Número do Processo: 0000001-00.0000.0.00000.0000000')
-c.drawString(100, 710, 'Autor: João Silva')
-c.drawString(100, 690, 'Réu: Empresa XYZ LTDA')
-c.drawString(100, 670, 'Vara Judicial: 1ª Vara do Trabalho')
-c.drawString(100, 650, 'Juiz: Desembargador ABC')
-c.drawString(100, 630, 'Tipo de Ação: Reclamação Trabalhista')
-c.drawString(100, 610, 'Pedido: Indenização por danos morais')
-c.drawString(100, 590, 'Data da Nomeação: 15 de janeiro de 2024')
-c.drawString(100, 570, 'Perito: Dr. Med. Silva (CRM 123456)')
-c.drawString(100, 550, '')
-c.drawString(100, 530, 'QUESITOS DO JUIZ:')
-c.drawString(100, 510, '1. Qual a doença alegada?')
-c.drawString(100, 490, '2. Há nexo causal com o trabalho?')
-c.drawString(100, 470, '3. Qual o grau de incapacidade?')
-c.drawString(100, 450, '')
-c.drawString(100, 430, 'PETIÇÃO INICIAL:')
-c.drawString(100, 410, 'O autor alega ter sofrido acidente no trabalho em 2023.')
-c.drawString(100, 390, 'Apresenta atestados e exames que comprovam a lesão.')
-c.drawString(100, 370, 'Solicita indenização por danos morais e materiais.')
-c.save()
-print('✓ PDF fictício criado: entradas/processo_ficticio.pdf')
-"
-```
-
-**OU use este arquivo direto (pré-gerado):**
-```bash
-cp teste_pdfs/processo_ficticio.pdf entradas/
-```
-
-### 3.3 Executar extração
 ```bash
 extrator-judicial extrair entradas/processo_ficticio.pdf --saida saidas/revisao-01.json
+extrator-judicial listar entradas/processo_ficticio.pdf --revisao saidas/revisao-01.json
 ```
 
-**Saída esperada:**
-```
-✓ Extração concluída
-✓ JSON salvo: saidas/revisao-01.json
-```
+`listar` mostra ID, campo, estado, origem e página de cada candidato, o tipo
+de perícia e o número de pendências. Ele **não imprime valores nem trechos**;
+para lê-los, abra o JSON em editor local (`valor`, `original`, `fonte`).
 
-### 3.4 Inspecionar resultado
-```bash
-cat saidas/revisao-01.json | python -m json.tool | head -100
-```
+Esperado com o PDF fictício: `c0001` a `c0012`, quesitos com origem `juiz`,
+`autor` e `reu`, e `Tipo de perícia: a_confirmar.`
 
-✅ Deve mostrar estrutura JSON com candidatos, páginas, e avisos.
-
----
-
-## ✏️ PASSO 4: Teste de Revisão
-
-### 4.1 Ver candidatos disponíveis
-```bash
-python3 -c "
-import json
-with open('saidas/revisao-01.json') as f:
-    data = json.load(f)
-    for c in data['candidatos'][:5]:
-        print(f\"ID: {c['id']} | Campo: {c['campo']} | Valor: {c['valor_atual']}\") 
-"
-```
-
-### 4.2 Confirmar um candidato
-```bash
-extrator-judicial revisar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-01.json \
-  --candidato c0001 \
-  --acao confirmar \
-  --saida saidas/revisao-02.json
-```
-
-### 4.3 Corrigir um candidato
-```bash
-extrator-judicial revisar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-02.json \
-  --candidato c0002 \
-  --acao corrigir \
-  --valor "Número corrigido: 0000001-00.0000.0.00000.9999999" \
-  --saida saidas/revisao-03.json
-```
-
-### 4.4 Rejeitar um candidato
-```bash
-extrator-judicial revisar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-03.json \
-  --candidato c0003 \
-  --acao rejeitar \
-  --saida saidas/revisao-04.json
-```
-
-### 4.5 Verificar histórico
-```bash
-python3 -c "
-import json
-with open('saidas/revisao-04.json') as f:
-    data = json.load(f)
-    for c in data['candidatos'][:3]:
-        print(f\"\n{c['id']}: {c['campo']}\") 
-        print(f\"  Estado: {c['estado']}\") 
-        print(f\"  Histórico: {c['historico'][-1] if c['historico'] else 'N/A'}\") 
-"
-```
-
-✅ Deve mostrar confirmações, correções e rejeições no histórico.
-
----
-
-## 🎯 PASSO 5: Teste de Classificação
-
-### 5.1 Classificar como trabalhista
-```bash
-extrator-judicial classificar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-04.json \
-  --tipo trabalhista \
-  --objeto "Reclamação trabalhista com lesão ocupacional" \
-  --saida saidas/revisao-05.json
-```
-
-### 5.2 Verificar classificação
-```bash
-python3 -c "
-import json
-with open('saidas/revisao-05.json') as f:
-    data = json.load(f)
-    print(f\"Tipo: {data['pericia']['tipo']}\") 
-    print(f\"Objeto: {data['pericia']['objeto']}\") 
-"
-```
-
-✅ Deve mostrar tipo e objeto confirmados.
-
----
-
-## 📊 PASSO 6: Teste de Exportação
-
-### 6.1 Exportar JSON e Markdown
-```bash
-extrator-judicial exportar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-05.json \
-  --json saidas/relatorio_final.json \
-  --markdown saidas/rascunho_laudo.md
-```
-
-### 6.2 Inspecionar relatório JSON
-```bash
-cat saidas/relatorio_final.json | python -m json.tool | head -50
-```
-
-### 6.3 Ver rascunho Markdown
-```bash
-cat saidas/rascunho_laudo.md
-```
-
-✅ Deve ter ficha, checklist documental e pré-laudo vazio.
-
----
-
-## 🔒 PASSO 7: Teste de Segurança
-
-### 7.1 Verificar proteção contra sobrescrita
-```bash
-# Tenta sobrescrever sem permissão (deve falhar)
-extrator-judicial exportar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-05.json \
-  --json saidas/relatorio_final.json \
-  --markdown saidas/rascunho_laudo.md
-```
-
-**Resultado esperado:** Erro de arquivo já existe
-
-### 7.2 Autorizar sobrescrita
-```bash
-extrator-judicial exportar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-05.json \
-  --json saidas/relatorio_final.json \
-  --markdown saidas/rascunho_laudo.md \
-  --sobrescrever
-```
-
-✅ Deve completar com sucesso.
-
----
-
-## 📋 PASSO 8: Teste de Validação
-
-### 8.1 PDF inválido
-```bash
-echo "isso não é um PDF" > entradas/invalido.txt
-extrator-judicial extrair entradas/invalido.txt --saida saidas/teste.json
-```
-
-**Resultado esperado:** Erro "PDF inválido ou corrompido"
-
-### 8.2 Arquivo não encontrado
-```bash
-extrator-judicial extrair entradas/nao_existe.pdf --saida saidas/teste.json
-```
-
-**Resultado esperado:** Erro "Arquivo não encontrado"
-
-### 8.3 Diretório de saída não existe
-```bash
-extrator-judicial exportar entradas/processo_ficticio.pdf \
-  --revisao saidas/revisao-05.json \
-  --json saidas_inexistentes/relatorio.json
-```
-
-**Resultado esperado:** Erro "Diretório de saída não existe"
-
-✅ Tratamento de erros funcionando corretamente.
-
----
-
-## 📈 PASSO 9: Teste de Performance
-
-### 9.1 Medir tempo de extração
-```bash
-time extrator-judicial extrair entradas/processo_ficticio.pdf --saida saidas/perf.json
-```
-
-**Esperado:** < 1 segundo
-
-### 9.2 Verificar uso de memória
-```bash
-# Linux/Mac
-/usr/bin/time -v extrator-judicial extrair entradas/processo_ficticio.pdf --saida saidas/perf.json
-
-# Windows (use Task Manager)
-```
-
-✅ Deve ser eficiente mesmo com PDFs maiores.
-
----
-
-## 🎓 PASSO 10: Teste Completo End-to-End
-
-### Script completo de teste
+### 2.4 Revisar
 
 ```bash
-#!/bin/bash
-
-echo "🧪 INICIANDO TESTE COMPLETO END-TO-END..."
-echo ""
-
-# Limpar saídas anteriores
-rm -rf saidas/*
-mkdir -p saidas
-
-echo "✓ Ambiente preparado"
-echo ""
-
-# 1. Extração
-echo "📥 FASE 1: Extração"
-extrator-judicial extrair entradas/processo_ficticio.pdf --saida saidas/r01.json || exit 1
-echo "✓ Extração completa"
-echo ""
-
-# 2. Revisão
-echo "✏️  FASE 2: Revisão"
-extrator-judicial revisar entradas/processo_ficticio.pdf --revisao saidas/r01.json --candidato c0001 --acao confirmar --saida saidas/r02.json || exit 1
-echo "✓ Revisão completa"
-echo ""
-
-# 3. Classificação
-echo "🎯 FASE 3: Classificação"
-extrator-judicial classificar entradas/processo_ficticio.pdf --revisao saidas/r02.json --tipo trabalhista --objeto "Teste" --saida saidas/r03.json || exit 1
-echo "✓ Classificação completa"
-echo ""
-
-# 4. Exportação
-echo "📊 FASE 4: Exportação"
-extrator-judicial exportar entradas/processo_ficticio.pdf --revisao saidas/r03.json --json saidas/relatorio.json --markdown saidas/laudo.md || exit 1
-echo "✓ Exportação completa"
-echo ""
-
-# 5. Verificação
-echo "🔍 FASE 5: Verificação"
-echo "Arquivos gerados:"
-ls -lh saidas/
-echo ""
-
-echo "✅ TESTE COMPLETO COM SUCESSO!"
+extrator-judicial revisar entradas/processo_ficticio.pdf --revisao saidas/revisao-01.json \
+  --candidato c0001 --acao confirmar --saida saidas/revisao-02.json
+extrator-judicial revisar entradas/processo_ficticio.pdf --revisao saidas/revisao-02.json \
+  --candidato c0002 --acao corrigir --valor "Valor corrigido no teste" --saida saidas/revisao-03.json
+extrator-judicial revisar entradas/processo_ficticio.pdf --revisao saidas/revisao-03.json \
+  --candidato c0003 --acao rejeitar --saida saidas/revisao-04.json
+extrator-judicial listar entradas/processo_ficticio.pdf --revisao saidas/revisao-04.json
 ```
 
-Salve como `teste_completo.sh` e execute:
+Esperado: `c0001 confirmado`, `c0002 corrigido`, `c0003 rejeitado`. No JSON, o
+`c0002` mantém `original` e `fonte`, passa a `natureza: anotacao_humana` e
+registra o evento em `historico`.
+
+### 2.5 Classificar (confirmação humana)
+
 ```bash
-chmod +x teste_completo.sh
-./teste_completo.sh
+extrator-judicial classificar entradas/processo_ficticio.pdf --revisao saidas/revisao-04.json \
+  --tipo trabalhista --objeto "Objeto fictício informado pelo perito" --saida saidas/revisao-05.json
 ```
 
----
+Tipos aceitos: `trabalhista` ou `previdenciaria`. Nada é classificado
+automaticamente.
 
-## 📝 CHECKLIST DE TESTE
+### 2.6 Exportar
 
-- [ ] Ambiente instalado
-- [ ] Testes unitários passam
-- [ ] Extração funciona
-- [ ] Revisão (confirmar) funciona
-- [ ] Revisão (corrigir) funciona
-- [ ] Revisão (rejeitar) funciona
-- [ ] Classificação funciona
-- [ ] Exportação JSON funciona
-- [ ] Exportação Markdown funciona
-- [ ] Validação de erros funciona
-- [ ] Performance aceitável
-- [ ] Histórico preservado
-- [ ] Proteção contra sobrescrita
-
----
-
-## 🚀 PRÓXIMOS PASSOS (Se todos os testes passarem)
-
-1. **Merge para main**
-   ```bash
-   git checkout main
-   git pull origin main
-   git merge teste-final-completo
-   git push origin main
-   ```
-
-2. **Criar release**
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-
-3. **Documentar em produção**
-   - Atualizar README.md
-   - Adicionar guia de uso
-   - Incluir exemplos de casos reais (sem dados sensíveis)
-
----
-
-## ❓ TROUBLESHOOTING
-
-### Erro: "ModuleNotFoundError: No module named 'extrator_judicial'"
 ```bash
-# Solução
-pip install -e .
+extrator-judicial exportar entradas/processo_ficticio.pdf --revisao saidas/revisao-05.json \
+  --json saidas/relatorio.json --markdown saidas/rascunho.md
 ```
 
-### Erro: "Command 'extrator-judicial' not found"
-```bash
-# Solução
-source .venv/bin/activate
-```
+Esperado: Markdown com ficha, candidatos, fontes, avisos, pendências, checklist
+documental genérico e Exame/Discussão/Conclusão "A preencher pelo perito".
+O JSON exportado é relatório; para continuar revisando, reabra `revisao-05.json`.
 
-### Erro: "PDF inválido"
-```bash
-# Solução: Use o PDF fictício fornecido
-ls entradas/
-```
+### 2.7 Proteções e erros
 
-### Teste falha com timeout
-```bash
-# Aumentar timeout (Linux/Mac)
-timeout 30 python -m pytest
-```
+| Ação | Resultado esperado (código 1) |
+|---|---|
+| Repetir a exportação acima sem `--sobrescrever` | `Saída já existe; escolha outro nome ou use --sobrescrever.` |
+| `--saida` igual ao `--revisao` de entrada, mesmo com `--sobrescrever` | `Saída não pode substituir PDF ou revisão de entrada.` |
+| `extrair` de arquivo que não é PDF | `Arquivo inválido: esperado um PDF.` |
+| `extrair` de caminho inexistente | `PDF não encontrado.` |
+| Saída em diretório inexistente | `Diretório de saída não existe; crie-o antes.` |
+| `--revisao` de outro PDF | `Revisão vinculada a outro PDF (hash diferente).` |
 
----
+Argumentos faltando ou inválidos (por exemplo, `exportar` sem `--markdown`)
+terminam com código 2 e `Erro: argumentos inválidos. Consulte --help.`
 
-## 📞 SUPORTE
+## 3. Checklist
 
-Se encontrar problemas:
-1. Verifique o Python 3.10+
-2. Verifique dependências: `pip list`
-3. Veja os logs: `cat .log` (se existir)
-4. Abra uma issue no GitHub
+- [ ] `pytest` e `flake8` sem falhas
+- [ ] Roteiro automático termina com "TESTE PONTA A PONTA CONCLUÍDO"
+- [ ] Página sem texto aparece como necessita OCR
+- [ ] `listar` não mostra nomes nem trechos
+- [ ] Confirmar, corrigir e rejeitar ficam no histórico; original e fonte preservados
+- [ ] Tipo de perícia só muda pelo comando `classificar`
+- [ ] Exportação rotulada como rascunho, sem conclusão automática
+- [ ] Sobrescrita recusada sem `--sobrescrever`; entradas nunca substituídas
 
----
+## 4. Problemas comuns
 
-**Última atualização:** 2026-10-10  
-**Status:** ✅ PRONTO PARA TESTE
+- `extrator-judicial: command not found`: ative o ambiente (`source .venv/bin/activate`).
+- `ModuleNotFoundError: extrator_judicial` ou `pypdf`: `python -m pip install -e .`
+- PDF real com páginas digitalizadas: o texto não é extraído (sem OCR nesta
+  entrega); as páginas aparecem como necessita OCR.
+
+Não use PDFs reais neste roteiro nem anexe saídas a issues ou PRs.

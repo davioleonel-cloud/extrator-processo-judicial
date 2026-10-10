@@ -49,6 +49,16 @@ o índice de pacotes; **a execução do produto é inteiramente local**, sem IA,
 servidor, banco externo, telemetria, upload ou chamadas externas.
 Os testes geram PDFs sintéticos fictícios nos diretórios temporários do pytest.
 
+Teste ponta a ponta (gera PDF fictício em diretório temporário e percorre todos
+os comandos, sem tocar `entradas/` ou `saidas/`; também roda no CI):
+
+```bash
+bash scripts_teste/teste_completo.sh        # Windows: scripts_teste\teste_completo.ps1
+python teste_pdfs/gerar_pdf_ficticio.py entradas/ficticio.pdf   # só o PDF fictício
+```
+
+Roteiro manual detalhado e resultados esperados: `TESTE_COMPLETO.md`.
+
 ## Uso, revisão e exportação
 
 Use um PDF **sintético** para experimentar. Os nomes a seguir são ilustrativos;
@@ -58,6 +68,13 @@ nenhum processo ou pessoa real é fornecido no repositório.
 mkdir -p entradas saidas
 extrator-judicial --help
 extrator-judicial extrair entradas/ficticio.pdf --saida saidas/revisao-01.json
+```
+
+Para ver os IDs, campos, estados, origens e páginas dos candidatos sem abrir
+o JSON, use `listar`. Ele não grava arquivos e **não imprime valores nem trechos**:
+
+```bash
+extrator-judicial listar entradas/ficticio.pdf --revisao saidas/revisao-01.json
 ```
 
 Abra o JSON em um editor local: consulte `candidatos`, seus IDs, valores,
@@ -120,7 +137,7 @@ Pacote em `src/extrator_judicial/`, com responsabilidades separadas:
 | `revisao.py` | Transições auditáveis, confirmação humana e validação |
 | `persistencia.py` | JSON UTF-8 e proteção contra sobrescrita |
 | `relatorios.py` | Relatórios de rascunho e checklist documental |
-| `cli.py` | Comandos locais (também `python -m extrator_judicial`) |
+| `cli.py` | Comandos `extrair`, `listar`, `revisar`, `classificar`, `exportar` (também `python -m extrator_judicial`) |
 
 O JSON de revisão contém `versao_esquema`, `documento`, `paginas`, `candidatos`,
 `pericia`, `ficha`, `avisos`, `pendencias` e `status`. Cada candidato tem ID,

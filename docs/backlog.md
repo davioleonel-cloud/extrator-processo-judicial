@@ -10,6 +10,8 @@
 - [x] JSON/Markdown de rascunho, checklist documental e conclusão em aberto
 - [x] Confirmação humana de tipo da perícia e objeto específico separado
 - [x] Testes sintéticos reais de leitura, extração, revisão, persistência e CLI
+- [x] Comando `listar` (IDs, campos, estados e páginas, sem conteúdo documental)
+- [x] Gerador de PDF fictício offline e roteiro ponta a ponta (bash/PowerShell, CI)
 
 Dependência de execução: pypdf (BSD-3-Clause); comandos e arquitetura no README.
 Os itens abaixo permanecem como objetivos de expansão, não concluídos.

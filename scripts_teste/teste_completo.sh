@@ -1,292 +1,120 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 ################################################################################
-# SCRIPT DE TESTE COMPLETO END-TO-END
-# Testa todas as funcionalidades do extrator judicial
-################################################################################
-
-set -e
-
-echo ""
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║     TESTE COMPLETO - EXTRATOR DE PROCESSOS JUDICIAIS         ║"
-echo "║                    Status: PRONTO PARA USAR                   ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
-echo ""
-echo "Data: $(date)"
-echo ""
-
-# Cores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Função para mensagem de sucesso
-sucesso() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-# Função para mensagem de erro
-erro() {
-    echo -e "${RED}✗${NC} $1"
-    exit 1
-}
-
-# Função para mensagem de info
-info() {
-    echo -e "${YELLOW}ℹ${NC} $1"
-}
-
-################################################################################
-# FASE 0: VERIFICAÇÕES PRÉ-TESTE
+# TESTE PONTA A PONTA — extrator judicial (Linux/macOS)
+#
+# Gera um PDF fictício e percorre extrair → listar → revisar → classificar →
+# exportar, conferindo também as proteções. Tudo acontece em um diretório
+# temporário: entradas/ e saidas/ do usuário não são lidos nem apagados.
+#
+# Uso, na raiz do clone:  bash scripts_teste/teste_completo.sh
+# Se o comando extrator-judicial não estiver disponível, cria .venv e instala.
 ################################################################################
 
-echo "FASE 0: Verificações Pré-Teste"
-echo "─────────────────────────────────────────────────────────────────"
+set -euo pipefail
 
-# Verificar Python
-if ! command -v python3 &> /dev/null; then
-    erro "Python 3 não encontrado. Instale Python 3.10+"
-fi
-sucesso "Python 3 encontrado: $(python3 --version)"
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$RAIZ"
 
-# Verificar venv
-if [[ ! -d ".venv" ]]; then
-    info "Criando ambiente virtual..."
-    python3 -m venv .venv
-    sucesso "Ambiente virtual criado"
-fi
+VERDE='\033[0;32m'; VERMELHO='\033[0;31m'; AMARELO='\033[1;33m'; SEM_COR='\033[0m'
+sucesso() { echo -e "${VERDE}✓${SEM_COR} $1"; }
+erro() { echo -e "${VERMELHO}✗${SEM_COR} $1"; exit 1; }
+info() { echo -e "${AMARELO}ℹ${SEM_COR} $1"; }
+fase() { echo; echo "$1"; echo "─────────────────────────────────────────────────────────────"; }
 
-# Ativar venv
-source .venv/bin/activate || erro "Falha ao ativar venv"
-sucesso "Ambiente virtual ativado"
-
-# Verificar instalação
-if ! command -v extrator-judicial &> /dev/null; then
-    info "Instalando pacote..."
-    pip install -q -e .
-    sucesso "Pacote instalado"
-else
-    sucesso "Pacote já instalado"
-fi
-
-# Verificar CLI
-extrator-judicial --help > /dev/null || erro "CLI não funciona"
-sucesso "CLI funciona"
-
-echo ""
-
-################################################################################
-# FASE 1: PREPARAÇÃO DE AMBIENTE
-################################################################################
-
-echo "FASE 1: Preparação de Ambiente"
-echo "─────────────────────────────────────────────────────────────────"
-
-# Criar diretórios
-mkdir -p entradas saidas teste_pdfs
-sucesso "Diretórios criados"
-
-# Limpar saídas anteriores
-rm -f saidas/*.json saidas/*.md 2>/dev/null || true
-sucesso "Saídas anteriores limpas"
-
-echo ""
-
-################################################################################
-# FASE 2: GERAR PDF DE TESTE
-################################################################################
-
-echo "FASE 2: Gerar PDF de Teste"
-echo "─────────────────────────────────────────────────────────────────"
-
-if [[ ! -f "teste_pdfs/processo_ficticio.pdf" ]]; then
-    info "Gerando PDF fictício..."
-    python3 teste_pdfs/gerar_pdf_ficticio.py || info "Não foi possível gerar PDF com reportlab"
-fi
-
-if [[ -f "teste_pdfs/processo_ficticio.pdf" ]]; then
-    cp teste_pdfs/processo_ficticio.pdf entradas/processo_ficticio.pdf
-    sucesso "PDF copiado para: entradas/processo_ficticio.pdf"
-else
-    erro "PDF fictício não encontrado. Crie um PDF em entradas/processo_ficticio.pdf"
-fi
-
-echo ""
-
-################################################################################
-# FASE 3: TESTES UNITÁRIOS
-################################################################################
-
-echo "FASE 3: Testes Unitários"
-echo "─────────────────────────────────────────────────────────────────"
-
-if command -v pytest &> /dev/null; then
-    info "Executando pytest..."
-    if python -m pytest -q 2>/dev/null; then
-        sucesso "Todos os testes passaram"
-    else
-        info "Alguns testes falharam (continuando...)"
+fase "FASE 0: Ambiente"
+if ! command -v extrator-judicial > /dev/null 2>&1; then
+    command -v python3 > /dev/null 2>&1 || erro "Python 3.10+ não encontrado"
+    if [[ ! -d .venv ]]; then
+        info "Criando ambiente virtual .venv"
+        python3 -m venv .venv
     fi
+    # shellcheck disable=SC1091
+    source .venv/bin/activate
+    info "Instalando pacote e pytest"
+    python -m pip install -q -e . pytest
+fi
+PYTHON="$(command -v python || command -v python3)"
+"$PYTHON" -c 'import sys; assert sys.version_info >= (3, 10)' || erro "Necessário Python 3.10+"
+extrator-judicial --help > /dev/null || erro "CLI não responde"
+sucesso "CLI disponível ($("$PYTHON" --version))"
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+PDF="$TMP/processo_ficticio.pdf"
+S="$TMP/saidas"
+mkdir -p "$S"
+
+fase "FASE 1: Testes automatizados"
+if "$PYTHON" -m pytest --version > /dev/null 2>&1; then
+    "$PYTHON" -m pytest -q || erro "Testes automatizados falharam"
+    sucesso "pytest passou"
 else
-    info "pytest não instalado (pulando)"
+    info "pytest não instalado; fase pulada (pip install pytest)"
 fi
 
-echo ""
+fase "FASE 2: PDF fictício"
+"$PYTHON" teste_pdfs/gerar_pdf_ficticio.py "$PDF" > /dev/null || erro "Falha ao gerar PDF fictício"
+sucesso "PDF sintético gerado em diretório temporário"
 
-################################################################################
-# FASE 4: TESTE DE EXTRAÇÃO
-################################################################################
+fase "FASE 3: Extração e listagem"
+extrator-judicial extrair "$PDF" --saida "$S/revisao-01.json" || erro "Extração falhou"
+LISTA="$(extrator-judicial listar "$PDF" --revisao "$S/revisao-01.json")" || erro "Listagem falhou"
+echo "$LISTA"
+grep -q "a_confirmar" <<< "$LISTA" || erro "Tipo de perícia deveria iniciar a_confirmar"
+grep -q "Fictícia" <<< "$LISTA" && erro "Listagem não pode exibir conteúdo documental"
+sucesso "Extração e listagem concluídas"
 
-echo "FASE 4: Teste de Extração"
-echo "─────────────────────────────────────────────────────────────────"
+fase "FASE 4: Revisão humana"
+extrator-judicial revisar "$PDF" --revisao "$S/revisao-01.json" \
+    --candidato c0001 --acao confirmar --saida "$S/revisao-02.json" || erro "Confirmar falhou"
+extrator-judicial revisar "$PDF" --revisao "$S/revisao-02.json" \
+    --candidato c0002 --acao corrigir --valor "Valor corrigido no teste" \
+    --saida "$S/revisao-03.json" || erro "Corrigir falhou"
+extrator-judicial revisar "$PDF" --revisao "$S/revisao-03.json" \
+    --candidato c0003 --acao rejeitar --saida "$S/revisao-04.json" || erro "Rejeitar falhou"
+"$PYTHON" - "$S/revisao-04.json" <<'PY' || erro "Histórico ou original não preservados"
+import json, sys
+dados = json.load(open(sys.argv[1], encoding="utf-8"))
+c1, c2, c3 = dados["candidatos"][:3]
+assert c1["estado"] == "confirmado" and len(c1["historico"]) == 1
+assert c2["estado"] == "corrigido" and c2["valor"] == "Valor corrigido no teste"
+assert c2["original"] != c2["valor"] and c2["natureza"] == "anotacao_humana"
+assert c3["estado"] == "rejeitado"
+PY
+sucesso "Confirmação, correção e rejeição registradas com histórico"
 
-info "Executando: extrator-judicial extrair"
-extrator-judicial extrair entradas/processo_ficticio.pdf \
-    --saida saidas/revisao-01.json || erro "Extração falhou"
+fase "FASE 5: Classificação humana"
+extrator-judicial classificar "$PDF" --revisao "$S/revisao-04.json" \
+    --tipo trabalhista --objeto "Objeto fictício informado pelo perito" \
+    --saida "$S/revisao-05.json" || erro "Classificação falhou"
+sucesso "Tipo e objeto confirmados manualmente"
 
-sucesso "Extração concluída"
-info "Arquivo: saidas/revisao-01.json ($(wc -c < saidas/revisao-01.json) bytes)"
+fase "FASE 6: Exportação"
+extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \
+    --json "$S/relatorio.json" --markdown "$S/rascunho.md" || erro "Exportação falhou"
+grep -q "RASCUNHO — REVISÃO NECESSÁRIA" "$S/rascunho.md" || erro "Rascunho sem aviso de revisão"
+grep -q "necessita OCR" "$S/rascunho.md" || erro "Página sem texto deveria indicar OCR"
+sucesso "JSON e Markdown exportados como rascunho"
 
-echo ""
-
-################################################################################
-# FASE 5: TESTE DE REVISÃO
-################################################################################
-
-echo "FASE 5: Teste de Revisão"
-echo "─────────────────────────────────────────────────────────────────"
-
-# Obter primeiro candidato
-PRIMEIRO_CANDIDATO=$(python3 -c "
-import json
-with open('saidas/revisao-01.json') as f:
-    data = json.load(f)
-    if data.get('candidatos'):
-        print(data['candidatos'][0]['id'])
-" 2>/dev/null || echo "")
-
-if [[ -z "$PRIMEIRO_CANDIDATO" ]]; then
-    info "Nenhum candidato encontrado para revisar"
-else
-    info "Confirmando candidato: $PRIMEIRO_CANDIDATO"
-    extrator-judicial revisar entradas/processo_ficticio.pdf \
-        --revisao saidas/revisao-01.json \
-        --candidato "$PRIMEIRO_CANDIDATO" \
-        --acao confirmar \
-        --saida saidas/revisao-02.json || info "Revisão com confirmar teve resultado inesperado"
-    
-    if [[ -f "saidas/revisao-02.json" ]]; then
-        sucesso "Revisão (confirmar) concluída"
-    fi
-    
-    # Corrigir um candidato
-    info "Testando ação de correção..."
-    extrator-judicial revisar entradas/processo_ficticio.pdf \
-        --revisao saidas/revisao-02.json \
-        --candidato "$PRIMEIRO_CANDIDATO" \
-        --acao corrigir \
-        --valor "Valor corrigido via teste" \
-        --saida saidas/revisao-03.json || info "Revisão com corrigir teve resultado inesperado"
-    
-    if [[ -f "saidas/revisao-03.json" ]]; then
-        sucesso "Revisão (corrigir) concluída"
-    fi
+fase "FASE 7: Proteções"
+if extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \
+    --json "$S/relatorio.json" --markdown "$S/rascunho.md" 2> /dev/null; then
+    erro "Sobrescrita sem --sobrescrever deveria ser recusada"
 fi
-
-echo ""
-
-################################################################################
-# FASE 6: TESTE DE CLASSIFICAÇÃO
-################################################################################
-
-echo "FASE 6: Teste de Classificação"
-echo "─────────────────────────────────────────────────────────────────"
-
-# Usar a última revisão disponível
-ULTIMA_REVISAO=$(ls -t saidas/revisao-*.json 2>/dev/null | head -1)
-
-if [[ -z "$ULTIMA_REVISAO" ]]; then
-    ULTIMA_REVISAO="saidas/revisao-01.json"
+sucesso "Sobrescrita sem autorização recusada"
+extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \
+    --json "$S/relatorio.json" --markdown "$S/rascunho.md" --sobrescrever || erro "--sobrescrever falhou"
+sucesso "Sobrescrita explícita aceita"
+if extrator-judicial revisar "$PDF" --revisao "$S/revisao-05.json" \
+    --candidato c0001 --acao confirmar --saida "$S/revisao-05.json" --sobrescrever 2> /dev/null; then
+    erro "Revisão de entrada não pode ser sobrescrita"
 fi
+sucesso "Revisão de entrada protegida mesmo com --sobrescrever"
+echo "não é PDF" > "$TMP/invalido.pdf"
+if extrator-judicial extrair "$TMP/invalido.pdf" --saida "$S/x.json" 2> /dev/null; then
+    erro "Arquivo que não é PDF deveria ser recusado"
+fi
+sucesso "Arquivo inválido recusado"
 
-info "Classificando como: trabalhista"
-extrator-judicial classificar entradas/processo_ficticio.pdf \
-    --revisao "$ULTIMA_REVISAO" \
-    --tipo trabalhista \
-    --objeto "Teste de perícia trabalhista" \
-    --saida saidas/revisao-classificada.json || erro "Classificação falhou"
-
-sucesso "Classificação concluída"
-
-echo ""
-
-################################################################################
-# FASE 7: TESTE DE EXPORTAÇÃO
-################################################################################
-
-echo "FASE 7: Teste de Exportação"
-echo "─────────────────────────────────────────────────────────────────"
-
-info "Exportando JSON e Markdown..."
-extrator-judicial exportar entradas/processo_ficticio.pdf \
-    --revisao saidas/revisao-classificada.json \
-    --json saidas/relatorio_final.json \
-    --markdown saidas/rascunho_laudo.md || erro "Exportação falhou"
-
-sucesso "Exportação concluída"
-info "JSON: saidas/relatorio_final.json ($(wc -c < saidas/relatorio_final.json 2>/dev/null || echo "0") bytes)"
-info "Markdown: saidas/rascunho_laudo.md ($(wc -c < saidas/rascunho_laudo.md 2>/dev/null || echo "0") bytes)"
-
-echo ""
-
-################################################################################
-# FASE 8: VERIFICAÇÕES FINAIS
-################################################################################
-
-echo "FASE 8: Verificações Finais"
-echo "─────────────────────────────────────────────────────────────────"
-
-# Verificar se os arquivos existem e têm conteúdo
-ARQUIVOS_ESPERADOS=("saidas/relatorio_final.json" "saidas/rascunho_laudo.md")
-
-for arquivo in "${ARQUIVOS_ESPERADOS[@]}"; do
-    if [[ -f "$arquivo" ]] && [[ -s "$arquivo" ]]; then
-        sucesso "$arquivo ($(wc -c < "$arquivo") bytes)"
-    else
-        erro "$arquivo não encontrado ou vazio"
-    fi
-done
-
-echo ""
-
-################################################################################
-# RESUMO FINAL
-################################################################################
-
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║                    RESULTADO FINAL                            ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
-echo ""
-sucesso "Todos os testes foram executados com sucesso!"
-echo ""
-
-echo "Arquivos gerados:"
-ls -lh saidas/ 2>/dev/null | tail -n +2 | awk '{print "  " $9 " (" $5 ")"}'
-echo ""
-
-echo "Próximos passos:"
-echo "  1. Revisar os arquivos gerados em saidas/"
-echo "  2. Verificar relatorio_final.json para estrutura de dados"
-echo "  3. Abrir rascunho_laudo.md em editor de texto"
-echo "  4. Testar com PDFs reais (sem dados sensíveis)"
-echo ""
-
-echo "Para mais informações:"
-echo "  - Veja TESTE_COMPLETO.md"
-echo "  - Execute: extrator-judicial --help"
-echo ""
-
-echo "✅ TESTE COMPLETO FINALIZADO COM SUCESSO!"
-echo ""
+echo
+echo "✅ TESTE PONTA A PONTA CONCLUÍDO (dados fictícios; arquivos temporários removidos)."
