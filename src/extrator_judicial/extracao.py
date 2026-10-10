@@ -3,6 +3,7 @@
 import re
 import unicodedata
 
+from .inicial import extrair_inicial
 from .modelos import atualizar_resumo, novo_modelo
 
 
@@ -15,6 +16,10 @@ ROTULOS = {
     "tipo_acao": r"(?:tipo (?:de |da )?acao|acao|classe(?: processual)?)",
     "pedido": r"(?:pedido(?: principal)?|solicitacao(?: pleiteada)?|objeto (?:da acao|do pedido))",
 }
+# Tudo que vem da petição inicial é alegação, não fato documental.
+ALEGACOES = (
+    "pedido", "peticao_inicial", "inicial_secao", "pedido_item", "data_mencionada", "cid_mencionado",
+)
 PADROES = {
     campo: re.compile(r"^\s*" + rotulo + r"\s*[:–-]\s*(\S.*?)\s*$")
     for campo, rotulo in ROTULOS.items()
@@ -66,8 +71,11 @@ def _cabecalho(linha, vizinhas=""):
 def extrair(documento, paginas):
     dados = novo_modelo(documento, paginas)
 
-    def adicionar(campo, original, numero, trecho, origem="indefinida"):
-        natureza = "alegacao" if campo in ("pedido", "peticao_inicial") else "informacao_documental"
+    def adicionar(campo, original, numero, trecho, origem="indefinida", pagina_final=None):
+        natureza = "alegacao" if campo in ALEGACOES else "informacao_documental"
+        fonte = {"documento": documento["hash"], "pagina": numero, "trecho": trecho}
+        if pagina_final is not None:
+            fonte["pagina_final"] = pagina_final
         dados["candidatos"].append({
             "id": f'c{len(dados["candidatos"]) + 1:04d}',
             "campo": campo,
@@ -76,7 +84,7 @@ def extrair(documento, paginas):
             "valor": original,
             "natureza_original": natureza,
             "natureza": natureza,
-            "fonte": {"documento": documento["hash"], "pagina": numero, "trecho": trecho},
+            "fonte": fonte,
             "estado": "a_revisar",
             "historico": [],
         })
@@ -105,5 +113,8 @@ def extrair(documento, paginas):
                     fim += 1
             trecho = "".join(linhas[indice:fim])
             adicionar(campo, trecho, pagina["numero"], trecho, origem)
+    extrair_inicial(paginas, lambda campo, valor, trecho, pagina, final: adicionar(
+        campo, valor, pagina, trecho, pagina_final=final
+    ))
     atualizar_resumo(dados)
     return dados

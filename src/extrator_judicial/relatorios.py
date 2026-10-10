@@ -22,6 +22,35 @@ def _texto(texto):
     return "\n".join("    " + html.escape(linha) for linha in str(texto).splitlines()) + "\n"
 
 
+def _paginas(fonte):
+    final = fonte.get("pagina_final", fonte["pagina"])
+    return f'página {fonte["pagina"]}' if final == fonte["pagina"] else f'páginas {fonte["pagina"]}–{final}'
+
+
+def _inicial(dados):
+    """Resumo navegável da inicial; detalhes e históricos seguem nos candidatos."""
+    titulos = {
+        "inicial_secao": "Seções", "pedido_item": "Pedidos",
+        "data_mencionada": "Datas citadas (tipo a confirmar)", "cid_mencionado": "CID citados",
+    }
+    candidatos = [c for c in dados["candidatos"] if c["campo"] in titulos and c["estado"] != "rejeitado"]
+    if not candidatos:
+        return []
+    partes = [
+        "## Petição inicial — alegações a revisar\n",
+        "Alegações da parte autora, não fatos comprovados. Conferir no PDF.\n",
+    ]
+    for campo, titulo in titulos.items():
+        itens = [c for c in candidatos if c["campo"] == campo]
+        if not itens:
+            continue
+        partes.append(f"### {titulo}\n")
+        for candidato in itens:
+            partes.append(f'- {candidato["id"]} ({_paginas(candidato["fonte"])}; {candidato["estado"]}):\n')
+            partes.append(_texto(candidato["valor"]))
+    return partes
+
+
 def _valores_agrupados(dados, ids):
     """Cabeçalhos repetidos (ex.: PJe) viram uma linha por valor distinto."""
     grupos = {}
@@ -58,6 +87,7 @@ def markdown(dados):
     for campo, ficha in dados["ficha"].items():
         partes.append(f'- {campo}: {ficha["estado"]}; candidatos: {", ".join(ficha["candidatos"]) or "nenhum"}\n')
         partes.extend(_valores_agrupados(dados, ficha["candidatos"]))
+    partes.extend(_inicial(dados))
     partes.extend([
         "## Tipo de perícia e objeto específico (revisão humana)\n",
         _texto(dados["pericia"]["tipo"]), _texto(dados["pericia"]["objeto"] or "A preencher pelo perito."),
@@ -68,7 +98,7 @@ def markdown(dados):
         partes.extend([
             f'### {candidato["id"]} — {candidato["campo"]}\n',
             f'Estado: {candidato["estado"]}; origem: {candidato["origem"]}; natureza: {candidato["natureza"]}.\n',
-            f'Fonte: SHA-256 {fonte["documento"]}, página {fonte["pagina"]}.\n',
+            f'Fonte: SHA-256 {fonte["documento"]}, {_paginas(fonte)}.\n',
             "Valor atual:\n", _texto(candidato["valor"]),
             "Original preservado:\n", _texto(candidato["original"]),
             "Trecho de origem:\n", _texto(fonte["trecho"]),
