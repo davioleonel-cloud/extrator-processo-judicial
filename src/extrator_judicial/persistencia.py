@@ -20,6 +20,18 @@ def json_texto(dados):
     return json.dumps(dados, ensure_ascii=False, indent=2) + "\n"
 
 
+def _criar_exclusivo(caminho, temporario):
+    with open(temporario, "rb") as origem, open(caminho, "xb") as destino:
+        try:
+            destino.write(origem.read())
+            destino.flush()
+            os.fsync(destino.fileno())
+        except OSError:
+            destino.close()
+            os.unlink(caminho)
+            raise
+
+
 def salvar_arquivos(saidas, protegidos=(), sobrescrever=False):
     """Pré-valida o conjunto; não promete transação entre múltiplos arquivos."""
     caminhos = [Path(caminho) for caminho, _ in saidas]
@@ -54,7 +66,14 @@ def salvar_arquivos(saidas, protegidos=(), sobrescrever=False):
                 os.replace(temporario, caminho)
             else:
                 # Link atômico falha se outro processo criou a saída após a pré-validação.
-                os.link(temporario, caminho)
+                try:
+                    os.link(temporario, caminho)
+                except FileExistsError:
+                    raise
+                except OSError:
+                    # Sistema de arquivos sem hard link (rede, FAT/exFAT, montagens):
+                    # criação exclusiva preserva a recusa de sobrescrita.
+                    _criar_exclusivo(caminho, temporario)
     except OSError:
         raise ErroExtrator(
             "Não foi possível gravar saída; confira permissões e arquivos existentes. "

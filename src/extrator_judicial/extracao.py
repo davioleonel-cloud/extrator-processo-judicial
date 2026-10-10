@@ -10,7 +10,7 @@ ROTULOS = {
     "numero_processo": r"(?:numero (?:do )?processo|processo(?: n[.oº°]*)?|autos(?: n[.oº°]*)?)",
     "autores": r"(?:autor(?:a)?(?:es|\(es\))?|requerentes?|reclamantes?|polo ativo)",
     "reus": r"(?:reu(?:s|\(s\))?|re(?:s)?|requerid[oa]s?|reclamad[oa]s?|polo passivo)",
-    "vara_judicial": r"(?:vara(?: judicial)?|juizo)",
+    "vara_judicial": r"(?:vara(?: judicial)?|juizo|orgao julgador(?: de origem)?)",
     "juiz": r"(?:juiz(?:a)?(?: de direito)?|magistrad[oa])",
     "tipo_acao": r"(?:tipo (?:de |da )?acao|acao|classe(?: processual)?)",
     "pedido": r"(?:pedido(?: principal)?|solicitacao(?: pleiteada)?|objeto (?:da acao|do pedido))",
@@ -28,11 +28,22 @@ def normalizar(texto):
     )
 
 
-def _cabecalho(linha):
+# Numeração de tópico opcional antes do título: "II - ", "3.", "a)".
+ENUMERACAO = r"(?:(?:[ivxlc]+|\d+|[a-z])\s*[-–.)]\s*)?"
+# Após "quesitos", só complementos típicos de título; "quesitos e ..." é texto corrido.
+QUESITOS = re.compile(
+    r"^" + ENUMERACAO + r"(?:dos )?quesitos"
+    r"(?:\s*$|\s*[:.–-]|\s+(?:d[oa]s?|de|para|pel[oa]s?|formulados|apresentados"
+    r"|complementares|suplementares|iniciais)\b)"
+)
+NOMEACAO_NOMINAL = re.compile(r"\bnomeio\b(?: em substituicao)?,? (?:o|a) (?:dr|dra|sr|sra)\b")
+
+
+def _cabecalho(linha, vizinhas=""):
     texto = normalizar(linha).strip()
     if re.match(r"^(?:peticao inicial|da peticao inicial)\b", texto):
         return "peticao_inicial", "indefinida"
-    if re.match(r"^(?:quesitos|dos quesitos)\b", texto):
+    if QUESITOS.match(texto):
         origens = []
         for origem, padrao in (
             ("juiz", r"\b(?:juiz|juizo|magistrado)\b"),
@@ -45,6 +56,8 @@ def _cabecalho(linha):
     if (
         re.search(r"\b(?:nomeio|designo)\b.{0,100}\bperit[oa]\b", texto)
         or re.search(r"\b(?:nomeacao|designacao) (?:do|da|de) perit[oa]\b", texto)
+        # "nomeio em substituição o Dr. ...": exige "perit" nas linhas vizinhas.
+        or (NOMEACAO_NOMINAL.search(texto) and re.search(r"\bperit", normalizar(vizinhas)))
     ):
         return "nomeacao_perito", "indefinida"
     return None
@@ -77,7 +90,7 @@ def extrair(documento, paginas):
                 if match:
                     valor = re.split(r"[:–-]", limpa, maxsplit=1)[1].strip()
                     adicionar(campo, valor, pagina["numero"], limpa)
-            cabecalho = _cabecalho(limpa)
+            cabecalho = _cabecalho(limpa, "".join(linhas[max(0, indice - 2):indice + 3]))
             if not cabecalho:
                 continue
             campo, origem = cabecalho

@@ -22,6 +22,21 @@ def _texto(texto):
     return "\n".join("    " + html.escape(linha) for linha in str(texto).splitlines()) + "\n"
 
 
+def _valores_agrupados(dados, ids):
+    """Cabeçalhos repetidos (ex.: PJe) viram uma linha por valor distinto."""
+    grupos = {}
+    for candidato in dados["candidatos"]:
+        if candidato["id"] in ids and candidato["estado"] != "rejeitado":
+            grupos.setdefault(candidato["valor"], []).append(candidato)
+    linhas = []
+    for valor, candidatos in grupos.items():
+        paginas = sorted({c["fonte"]["pagina"] for c in candidatos})
+        resumo = ", ".join(map(str, paginas[:10])) + (" …" if len(paginas) > 10 else "")
+        linhas.append(f"  - {len(candidatos)} ocorrência(s), páginas {resumo}; primeiro: {candidatos[0]['id']}\n")
+        linhas.append(_texto(valor))
+    return linhas
+
+
 def exportacao(dados):
     resultado = dict(dados)
     resultado["checklist_documental"] = CHECKLIST
@@ -42,6 +57,7 @@ def markdown(dados):
     ]
     for campo, ficha in dados["ficha"].items():
         partes.append(f'- {campo}: {ficha["estado"]}; candidatos: {", ".join(ficha["candidatos"]) or "nenhum"}\n')
+        partes.extend(_valores_agrupados(dados, ficha["candidatos"]))
     partes.extend([
         "## Tipo de perícia e objeto específico (revisão humana)\n",
         _texto(dados["pericia"]["tipo"]), _texto(dados["pericia"]["objeto"] or "A preencher pelo perito."),

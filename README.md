@@ -13,10 +13,15 @@ legados permanecem preservados e não fazem parte desta instalação.
   mistos. Isso não significa ausência de informação. **Não há OCR implementado.**
 - Candidatos conservadores para número do processo, autores, réus, vara, juiz,
   tipo de ação e pedido, por rótulos em português (`Autor:`, `Requerente:`,
-  `Réu:`, `Reclamada:`, `Classe processual:`, entre outros).
+  `Réu:`, `Reclamada:`, `Classe processual:`, `Órgão Julgador de Origem:`,
+  entre outros, inclusive cabeçalhos repetidos do PJe).
   Diferentes ocorrências são mantidas; não há seleção silenciosa nem score.
-- Localização inicial de **possíveis** nomeações com indicadores explícitos,
-  quesitos do juiz/autor/réu/origem indefinida e petição inicial.
+  No Markdown, a ficha agrupa ocorrências iguais (quantidade e páginas).
+- Localização inicial de **possíveis** nomeações com indicadores explícitos
+  (inclusive "nomeio em substituição o Dr. …" com "perito/perita" nas linhas
+  vizinhas), títulos de quesitos do juiz/autor/réu/origem indefinida, também
+  numerados ("II - DOS QUESITOS …"), e petição inicial. Quesitos citados no meio
+  do texto corrido não são localizados.
   São candidatos, **não segmentação perfeita**. Texto e numeração dos quesitos
   permanecem originais; origens diferentes não são concatenadas.
 - Revisão por comandos, com confirmação, correção e rejeição persistidas.
@@ -118,7 +123,9 @@ também `revisao-05.json`. Editar Markdown não altera o histórico JSON.
 Saídas existentes são recusadas. `--sobrescrever` autoriza explicitamente
 substituir **somente saídas**; PDF e JSON de entrada nunca podem ser substituídos,
 mesmo com essa opção. Diretórios devem existir. Escrita UTF-8, com permissões
-restritas e publicação atômica por arquivo. A exportação dupla pré-valida ambas
+restritas e publicação atômica por arquivo. Em pastas sem suporte a hard link
+(rede, FAT/exFAT, montagens), a gravação usa criação exclusiva: continua recusando
+sobrescrita, mas sem a mesma garantia atômica. A exportação dupla pré-valida ambas
 as saídas, mas **não é transação**: em erro de disco, confira eventual saída parcial.
 Erros de leitura/gravação/revisão retornam código 1; argumentos inválidos, 2.
 PDFs inválidos, corrompidos, ausentes e protegidos recebem mensagens sem conteúdo
@@ -150,6 +157,8 @@ Nenhuma dessas naturezas é uma verdade pericial automática.
 Ao reabrir, a CLI lê o PDF novamente, verifica SHA-256, reconstitui os candidatos
 e reproduz o histórico. Fontes/páginas/trechos/originais inconsistentes são
 recusados. Renomear o mesmo PDF é permitido; trocar seu conteúdo, não.
+Revisões criadas antes de uma mudança nas regras de extração podem ser recusadas
+na nova versão; nesse caso, extraia novamente.
 Essa validação assegura consistência documental, **não autentica identidade do
 revisor** nem protege contra alguém que forje deliberadamente todo o histórico.
 
