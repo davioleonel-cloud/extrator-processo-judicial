@@ -1,0 +1,13 @@
+# Documentos e resultados locais potencialmente sensíveis
+/entradas/
+/saidas/
+*.pdf
+*.json
+# Ambiente, testes e instalação
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/

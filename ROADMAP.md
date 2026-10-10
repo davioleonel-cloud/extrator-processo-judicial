@@ -4,7 +4,21 @@
 
 Construir um sistema para automatizar a organização de processos judiciais em arquivo único (PDF), com foco em extração de dados processuais, identificação de quesitos, organização documental e geração de checklist e pré-laudo de estudo para perícias.
 
-## Escopo da primeira versão
+## Primeira entrega técnica limitada (implementada nesta base)
+
+- CLI local para um PDF, texto e ordem por página, hash e aviso necessita OCR
+- identificação por rótulos e candidatos de nomeação, quesitos e inicial
+- revisão humana JSON versionada desde a primeira entrega, preservando fontes
+- JSON e Markdown de rascunho, checklist documental genérico e pré-laudo vazio
+- tipo de perícia a confirmar, informado/confirmado manualmente com objeto separado
+- testes exclusivamente sintéticos; scripts legados independentes e preservados
+
+Não inclui OCR, interface visual/upload web, inventário médico/CTPS completo,
+linha do tempo, inicial exaustiva ou checklist especializado. As fases abaixo
+preservam o planejamento do produto completo, **não representam entregas prontas**.
+Instalação, comandos, arquitetura e limites estão no README.
+
+## Escopo planejado do produto completo
 
 A primeira versão será focada em entrada de um único PDF e extração estruturada dos elementos fundamentais do processo:
 
@@ -20,7 +34,7 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 - petição inicial
 - pedido, motivo, doença alegada, período e datas
 - documentos médicos e profissionais relevantes
-- classificação preliminar entre trabalhista e previdenciária
+- classificação entre trabalhista e previdenciária confirmada por humano
 - checklist para perícia
 - pré-laudo de estudo com referências
 
@@ -35,7 +49,7 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 ## Filosofia do projeto
 
 - preservar a origem documental de cada informação
-- separar o que foi alegado do que foi comprovado
+- distinguir alegação, informação documental e anotação humana; documento não comprova verdade
 - permitir revisão humana antes da resposta final
 - manter rastreabilidade por página, trecho e documento
 - apoiar a perícia com checklist e documentação estruturada
@@ -47,7 +61,7 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 **Objetivo:** receber o arquivo PDF e tornar o conteúdo navegável e revisável.
 
 **Entregáveis:**
-- upload de um arquivo PDF único
+- caminho local de um arquivo PDF único; interface visual em entrega futura
 - paginação e visualização por página
 - marcação de trechos relevantes
 - origem clara de cada bloco extraído
@@ -66,7 +80,7 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 - questão principal do pedido e objeto do processo
 
 **Critério de conclusão:**
-- todos os campos principais do processo ficam preenchidos e revisáveis
+- campos localizados têm fontes e revisão; ausentes permanecem não localizados
 
 ### Fase 3 — Quesitos e petição inicial
 
@@ -101,12 +115,12 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 **Objetivo:** distinguir se o caso entra em perícia trabalhista, previdenciária ou requer confirmação.
 
 **Entregáveis:**
-- classificação preliminar do tipo de perícia
+- classificação do tipo de perícia confirmada por humano, objeto específico separado
 - diferenciação dos pontos que se destacam em cada tipo
-- checklist específico para o tipo identificado
+- checklist específico somente após confirmação humana e validação do objeto
 
 **Critério de conclusão:**
-- o sistema sugere o tipo de perícia com justificativa documental
+- o humano confirma tipo e objeto; palavras-chave não definem classificação final
 
 ### Fase 6 — Checklist e pré-laudo
 
@@ -141,16 +155,19 @@ A primeira versão será focada em entrada de um único PDF e extração estrutu
 ## Regras de desenvolvimento
 
 - todo dado extraído deve manter referência de origem
-- tudo que foi alegado deve ser distinguido do que foi comprovado
+- alegação, informação documental e anotação humana são distintas; não inferir comprovação
 - qualquer campo em dúvida deve ser marcado como "a confirmar"
 - a revisão humana sempre precede a conclusão formal
 - os documentos devem ser tratados de forma cronológica e auditável
 
 ## Próximo passo imediato
 
-A próxima etapa será a criação dos arquivos de requisitos e backlog e a definição das prioridades dos módulos de extração.
+Validar a base limitada com os testes fictícios e revisão profissional do fluxo.
+Depois ampliar localização de documentos e inicial, mantendo revisão e fontes.
+Inventário médico/CTPS deve distinguir cargo de atividade real e separar datas
+de emissão, atendimento e início alegado. OCR e interface visual vêm depois;
+checklist especializado depende de classificação humana confirmada e objeto.
 
 ## Observação
 
 Este roadmap não substitui a análise técnica do perito; ele organiza e facilita a coleta de informações, a revisão documental e a preparação da perícia.
-

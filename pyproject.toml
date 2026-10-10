@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extrator-judicial"
+version = "0.1.0"
+description = "Organização documental local e revisável de um PDF judicial"
+requires-python = ">=3.10"
+dependencies = ["pypdf==6.20.0"]
+
+[project.scripts]
+extrator-judicial = "extrator_judicial.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

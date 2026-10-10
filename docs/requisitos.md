@@ -4,14 +4,24 @@
 
 Este sistema deve permitir a análise de um processo judicial em PDF único, com organização documental e extração estruturada das informações relevantes para estudo e preparação de perícia.
 
+## Recorte da entrega técnica atual
+
+Os requisitos abaixo descrevem o produto completo. A base atual entrega CLI
+local, leitura por página/hash, identificação por rótulos, candidatos de nomeação,
+quesitos e inicial, revisão JSON auditável e relatórios JSON/Markdown de rascunho.
+Sem OCR, upload web, inicial exaustiva, inventário médico/CTPS, linha do tempo ou
+checklist especializado. A revisão e rastreabilidade são obrigatórias desde
+esta entrega; pendências não impedem exportar rascunho, nunca rotulado validado.
+Consulte README para comandos, arquitetura, esquema e limites reais.
+
 ## Requisitos funcionais
 
-### RF01 — Upload de PDF único
+### RF01 — Entrada de PDF único
 
 O sistema deve aceitar um único arquivo PDF como entrada principal.
 
 **Critérios:**
-- o usuário consegue enviar um arquivo PDF
+- o usuário informa caminho local de exatamente um PDF; interface visual é futura
 - o arquivo é lido e mantido em ordem de paginação
 - o conteúdo permanece acessível para revisão
 
@@ -67,7 +77,7 @@ O sistema deve extrair e organizar:
 - evento/episódio que fundamenta a ação
 
 **Critérios:**
-- o sistema deve diferenciar alegação de fato comprovado
+- o sistema distingue alegação, informação documental e anotação humana; documento não comprova verdade
 - o campo deve ser revisável manualmente
 
 ### RF06 — Documentos médicos e profissionais
@@ -87,11 +97,11 @@ O sistema deve organizar os documentos anexados ao processo, especialmente:
 
 ### RF07 — Diferenciação entre perícia trabalhista e previdenciária
 
-O sistema deve classificar o caso de forma preliminar entre:
+O tipo inicia a confirmar e deve ser informado e confirmado por humano entre:
 
 - trabalhista
 - previdenciária
-- confirmar
+- a confirmar (sem classificação automática)
 
 E destacar os pontos diferenciadores de cada tipo, como:
 
@@ -103,12 +113,14 @@ E destacar os pontos diferenciadores de cada tipo, como:
 - exigência processual específica
 
 **Critérios:**
-- a classificação deve ser explicada com base em documento e contexto
-- o sistema deve informar que é uma classificação preliminar, não conclusão final
+- tipo confirmado por humano e objeto específico são registrados separadamente
+- palavras-chave não determinam classificação final ou conteúdo clínico
+- checklist especializado depende dessa confirmação e revisão profissional
 
 ### RF08 — Checklist para perícia
 
-O sistema deve gerar um checklist de apoio para a perícia, com base no caso e nos quesitos.
+O produto completo deverá gerar checklist especializado após confirmação humana
+de tipo e objeto. Nesta entrega há somente checklist DOCUMENTAL genérico.
 
 **Itens esperados:**
 - pontos a esclarecer
@@ -169,11 +181,13 @@ A solução deve poder rodar em ambiente local e compatível com Python, sem dep
 
 ## Regras de negócio
 
-1. O que foi alegado deve ser distinto do que foi comprovado.
+1. Alegação, informação documental e anotação humana são distintas; nenhuma extração comprova um fato.
 2. O sistema deve sempre manter a origem documental.
-3. A classificação trabalhista/previdenciária é preliminar e revisável.
+3. A classificação trabalhista/previdenciária exige confirmação humana, com objeto específico separado.
 4. Campos incompletos devem ser marcados como "a confirmar".
-5. O usuário deve poder revisar ao menos os blocos mais importantes antes de gerar o pré-laudo final.
+5. Revisão persistida desde a primeira entrega; exportação com pendências continua rascunho.
+6. Não gerar diagnóstico, nexo, incapacidade, respostas aos quesitos ou conclusão jurídica automaticamente.
+7. Cargo não implica atividade efetiva; datas de emissão, atendimento e início alegado são distintas.
 
 ## Prioridade
 
@@ -189,7 +203,7 @@ A solução deve poder rodar em ambiente local e compatível com Python, sem dep
 ### Prioridade média
 - classificação trabalhista/previdenciária
 - organização cronológica detalhada
-- revisão manual avançada
+- ampliação da revisão auditável já implementada (não adiar a revisão básica)
 
 ### Prioridade baixa
 - interface visual sofisticada
@@ -203,7 +217,6 @@ Uma ferramenta que permita:
 
 - importar um PDF único
 - detectar os dados principais do processo
-- organizar a documentação jurídica e médica
-- gerar um checklist útil para a perícia
-- preparar um pré-laudo de estudo com referência documental
-
+- localizar candidatos de trechos jurídicos, ainda sem inventário médico completo
+- gerar checklist documental genérico, não clínico prescritivo
+- preparar rascunho de pré-laudo com fontes e campos de exame/discussão/conclusão em aberto
