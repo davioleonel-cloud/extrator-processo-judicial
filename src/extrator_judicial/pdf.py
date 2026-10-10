@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from pypdf import PdfReader
-from pypdf.errors import PyPdfError
+from pypdf.errors import DependencyError, PyPdfError
 
 
 class ErroExtrator(ValueError):
@@ -62,6 +62,10 @@ def ler_pdf(caminho):
         raise ErroExtrator("PDF não encontrado.") from None
     except OSError:
         raise ErroExtrator("Não foi possível ler o PDF local.") from None
+    except DependencyError:
+        raise ErroExtrator(
+            "PDF protegido por criptografia não disponível; forneça uma cópia autorizada sem proteção."
+        ) from None
     except ErroExtrator:
         raise
     except (PyPdfError, ValueError, TypeError, KeyError, IndexError, RecursionError, OverflowError):

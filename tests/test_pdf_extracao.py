@@ -122,3 +122,21 @@ def test_avisos_internos_nao_expoem_conteudo(pdf_ficticio, monkeypatch, caplog):
     assert "documental fictício privado" not in caplog.text
     assert logger.handlers == handlers
     assert logger.propagate == propagacao
+
+
+def test_criptografia_sem_dependencia_retorna_erro_seguro(pdf_ficticio, tmp_path, monkeypatch, capsys):
+    from pypdf.errors import DependencyError
+    from extrator_judicial import pdf
+
+    def leitor_sem_criptografia(*args, **kwargs):
+        raise DependencyError("AES: detalhe interno com caminho e conteúdo documental")
+
+    monkeypatch.setattr(pdf, "PdfReader", leitor_sem_criptografia)
+    assert main([
+        "extrair", str(pdf_ficticio), "--saida", str(tmp_path / "saida.json"),
+    ]) == 1
+    captura = capsys.readouterr()
+    assert "protegido por criptografia" in captura.err
+    assert "detalhe interno" not in captura.err
+    assert str(tmp_path) not in captura.err
+    assert not (tmp_path / "saida.json").exists()
