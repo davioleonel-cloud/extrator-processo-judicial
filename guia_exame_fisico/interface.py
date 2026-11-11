@@ -371,8 +371,32 @@ DICAS:
             conteudo += f"\nPASSOS:\n"
             for passo in teste['passos']:
                 conteudo += f"{passo}\n"
+
+            valores_normais = {chave: valor for chave, valor in teste.items()
+                                if chave.startswith('normal_')}
+            if valores_normais:
+                rotulos_normais = {
+                    'normal_polpa_digital': 'Polpa digital',
+                    'normal_palma': 'Palma',
+                    'normal_dorso_mao': 'Dorso da mão',
+                    'normal_dorso_antebraco': 'Dorso do antebraço',
+                }
+                conteudo += "\nVALORES NORMAIS:\n"
+                for chave, valor in valores_normais.items():
+                    rotulo = rotulos_normais.get(
+                        chave, chave.replace('normal_', '').replace('_', ' ').capitalize())
+                    conteudo += f"{rotulo}: {valor}\n"
+
+            if 'classificacao' in teste:
+                conteudo += "\nCLASSIFICAÇÃO:\n"
+                for filamento, resultado in teste['classificacao'].items():
+                    conteudo += f"{filamento}: {resultado}\n"
+
+            if 'interpretacao' in teste:
+                conteudo += f"\nINTERPRETAÇÃO:\n{teste['interpretacao']}\n"
+
             conteudo += "\n"
-        
+
         self.texto_sensibilidade.insert(1.0, conteudo)
         self.texto_sensibilidade.config(state=tk.DISABLED)
     
