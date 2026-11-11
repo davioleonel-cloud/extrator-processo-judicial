@@ -17,9 +17,9 @@ TESTES_SENSIBILIDADE = {
 
     'Teste de Discriminação de Dois Pontos': {
         'descricao': 'Capacidade de diferenciar dois estímulos próximos',
-        'material': 'Compass de dois pontos ou calibrador',
-        'normal_fingertip': '2-3 mm',
-        'normal_dorso': '30-40 mm',
+        'material': 'Compasso de dois pontos ou calibrador',
+        'normal_polpa_digital': '2-3 mm',
+        'normal_dorso_mao': '30-40 mm',
         'passos': [
             '1. Paciente com olhos fechados',
             '2. Aplicar dois pontos simultaneamente',
@@ -27,6 +27,7 @@ TESTES_SENSIBILIDADE = {
             '4. Diminuir até encontrar limite',
             '5. Paciente identifica "um" ou "dois" pontos',
             '6. Registrar a menor distância discriminada'
-        ]
+        ],
+        'interpretacao': 'Aumento da distância mínima discriminada indica comprometimento da sensibilidade tátil fina, associado a neuropatia periférica ou compressão nervosa (ex.: síndrome do túnel do carpo)'
     }
 }
