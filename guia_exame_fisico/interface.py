@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .testes import TestesOrtopedicos
+from .formatacao import formatar_testes_sensibilidade
 from .tabelas_referencia import gerar_tabelas_referencia
 
 
@@ -361,17 +362,7 @@ DICAS:
         self.texto_sensibilidade.pack(fill=tk.BOTH, expand=True)
         
         # Preencher com informações dos testes
-        conteudo = "TESTES DE SENSIBILIDADE\n" + "="*70 + "\n\n"
-        for nome_teste, teste in TestesOrtopedicos.TESTES_SENSIBILIDADE.items():
-            conteudo += f"\n{'─'*70}\n"
-            conteudo += f"{nome_teste.upper()}\n"
-            conteudo += f"{'─'*70}\n"
-            conteudo += f"Descrição: {teste['descricao']}\n"
-            conteudo += f"Material: {teste['material']}\n"
-            conteudo += f"\nPASSOS:\n"
-            for passo in teste['passos']:
-                conteudo += f"{passo}\n"
-            conteudo += "\n"
+        conteudo = formatar_testes_sensibilidade(TestesOrtopedicos.TESTES_SENSIBILIDADE)
         
         self.texto_sensibilidade.insert(1.0, conteudo)
         self.texto_sensibilidade.config(state=tk.DISABLED)
