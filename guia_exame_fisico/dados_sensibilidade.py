@@ -12,6 +12,12 @@ TESTES_SENSIBILIDADE = {
             '5. Testar várias regiões da mão/pé',
             '6. Registrar limite de sensibilidade'
         ],
+        'classificacao': {
+            '2.83': 'Normal',
+            '4.31': 'Diminuída',
+            '6.65': 'Diminuída profundamente',
+            'Não sente 6.65': 'Perda severa de sensibilidade'
+        },
         'interpretacao': 'Perda de sensibilidade indica neuropatia'
     },
 
@@ -19,7 +25,9 @@ TESTES_SENSIBILIDADE = {
         'descricao': 'Capacidade de diferenciar dois estímulos próximos',
         'material': 'Compasso de dois pontos ou calibrador',
         'normal_polpa_digital': '2-3 mm',
-        'normal_dorso_mao': '30-40 mm',
+        'normal_palma': '8-10 mm',
+        'normal_dorso_mao': '20-30 mm',
+        'normal_dorso_antebraco': '30-40 mm',
         'passos': [
             '1. Paciente com olhos fechados',
             '2. Aplicar dois pontos simultaneamente',
