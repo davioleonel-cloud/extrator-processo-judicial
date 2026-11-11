@@ -1,7 +1,7 @@
 """Testes especiais ortopédicos: execução, sensibilidade e especificidade."""
 
 TESTES_ESPECIAIS = {
-    'Teste de Tinnel (Síndrome do Túnel do Carpo)': {
+    'Teste de Tinel (Síndrome do Túnel do Carpo)': {
         'descricao': 'Percussão do nervo mediano no punho',
         'positivo': 'Sensação de formigamento nos dedos polegar, indicador, médio e metade radial do anular',
         'passos': [
