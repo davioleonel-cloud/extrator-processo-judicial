@@ -29,8 +29,12 @@ def test_aba_sensibilidade_exibe_referencias_e_interpretacao():
     testes = TestesOrtopedicos.TESTES_SENSIBILIDADE
     texto = formatar_testes_sensibilidade(testes)
     dois_pontos = testes['Teste de Discriminação de Dois Pontos']
-    assert f"Normal (polpa digital): {dois_pontos['normal_polpa_digital']}" in texto
-    assert f"Normal (dorso da mão): {dois_pontos['normal_dorso_mao']}" in texto
+    assert 'VALORES NORMAIS' in texto
+    assert f"Polpa digital: {dois_pontos['normal_polpa_digital']}" in texto
+    assert f"Dorso da mão: {dois_pontos['normal_dorso_mao']}" in texto
+    monofilamento = testes['Monofilamento de Semmes-Weinstein']
+    for filamento, resultado in monofilamento['classificacao'].items():
+        assert f"{filamento}: {resultado}" in texto
     for teste in testes.values():
         assert teste['interpretacao'] in texto
         for passo in teste['passos']:
@@ -42,7 +46,7 @@ def test_aba_sensibilidade_omite_referencias_ausentes():
 
     texto = formatar_testes_sensibilidade(
         {'Teste X': {'descricao': 'd', 'material': 'm', 'passos': ['1. p']}})
-    assert 'VALORES DE REFERÊNCIA' not in texto
+    assert 'VALORES NORMAIS' not in texto and 'CLASSIFICAÇÃO' not in texto
     assert 'INTERPRETAÇÃO' not in texto
 
 

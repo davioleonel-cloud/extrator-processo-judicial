@@ -1,10 +1,12 @@
 """Formatação de textos exibidos na interface (sem dependência de tkinter)."""
 
-# Rótulos dos valores de referência opcionais, na ordem de exibição.
-REFERENCIAS_SENSIBILIDADE = (
-    ('normal_polpa_digital', 'Normal (polpa digital)'),
-    ('normal_dorso_mao', 'Normal (dorso da mão)'),
-)
+# Rótulos dos valores normais (campos "normal_*") da aba Sensibilidade.
+ROTULOS_VALORES_NORMAIS = {
+    'normal_polpa_digital': 'Polpa digital',
+    'normal_palma': 'Palma',
+    'normal_dorso_mao': 'Dorso da mão',
+    'normal_dorso_antebraco': 'Dorso do antebraço',
+}
 
 
 def formatar_testes_sensibilidade(testes: dict) -> str:
@@ -17,16 +19,22 @@ def formatar_testes_sensibilidade(testes: dict) -> str:
         conteudo += f"Descrição: {teste['descricao']}\n"
         conteudo += f"Material: {teste['material']}\n"
 
-        referencias = [(rotulo, teste[chave])
-                       for chave, rotulo in REFERENCIAS_SENSIBILIDADE if chave in teste]
-        if referencias:
-            conteudo += "\nVALORES DE REFERÊNCIA:\n"
-            for rotulo, valor in referencias:
+        valores_normais = {c: v for c, v in teste.items() if c.startswith('normal_')}
+        if valores_normais:
+            conteudo += "\nVALORES NORMAIS:\n"
+            for chave, valor in valores_normais.items():
+                rotulo = ROTULOS_VALORES_NORMAIS.get(
+                    chave, chave.replace('normal_', '').replace('_', ' ').capitalize())
                 conteudo += f"{rotulo}: {valor}\n"
 
         conteudo += "\nPASSOS:\n"
         for passo in teste['passos']:
             conteudo += f"{passo}\n"
+
+        if teste.get('classificacao'):
+            conteudo += "\nCLASSIFICAÇÃO:\n"
+            for filamento, resultado in teste['classificacao'].items():
+                conteudo += f"{filamento}: {resultado}\n"
 
         if teste.get('interpretacao'):
             conteudo += f"\nINTERPRETAÇÃO:\n{teste['interpretacao']}\n"
