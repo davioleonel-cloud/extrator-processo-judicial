@@ -7,6 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 from .testes import TestesOrtopedicos
+from .formatacao import (
+    formatar_resumo,
+    formatar_teste_amplitude,
+    formatar_teste_especial,
+    formatar_teste_forca,
+    formatar_testes_sensibilidade,
+)
 from .tabelas_referencia import gerar_tabelas_referencia
 
 
@@ -21,6 +28,9 @@ class InterfaceExameFisico:
         self.estilo = ttk.Style()
         self.estilo.theme_use('clam')
         
+        # Dados do exame (antes das abas, que podem usá-los)
+        self.dados_exame = {}
+        
         # Frame principal com abas
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -33,8 +43,6 @@ class InterfaceExameFisico:
         self.criar_aba_resumo()
         self.criar_aba_tabelas_referencia()
         
-        # Dados do exame
-        self.dados_exame = {}
     
     def criar_aba_amplitude(self):
         """Aba de testes de amplitude de movimento"""
@@ -79,41 +87,7 @@ class InterfaceExameFisico:
         if not teste_nome:
             return
         
-        teste = TestesOrtopedicos.TESTES_AMPLITUDE[teste_nome]
-        
-        conteudo = f"""
-╔════════════════════════════════════════════════════════════════════╗
-║                    {teste_nome.upper()}
-╚════════════════════════════════════════════════════════════════════╝
-
-DESCRIÇÃO:
-{teste['descricao']}
-
-AMPLITUDE NORMAL:
-{teste['normal']}
-
-POSIÇÃO DO PACIENTE:
-{teste['posicao_paciente']}
-
-POSIÇÃO DO EXAMINADOR:
-{teste['posicao_examinador']}
-
-REFERÊNCIA ANATÔMICA:
-{teste['referencia_anatomica']}
-
-PASSOS PARA REALIZAÇÃO:
-"""
-        for passo in teste['passos']:
-            conteudo += f"\n{passo}"
-        
-        conteudo += "\n\n" + "="*70
-        conteudo += "\nDICAS IMPORTANTES:\n"
-        conteudo += "• Sempre compare com o lado contralateral\n"
-        conteudo += "• Comece com movimento ativo (paciente fazendo)\n"
-        conteudo += "• Depois teste movimento passivo (examinador fazendo)\n"
-        conteudo += "• Use goniômetro para maior precisão\n"
-        conteudo += "• Registre qualquer dor durante o movimento\n"
-        conteudo += "• Verifique presença de crepitação ou estalidos\n"
+        conteudo = formatar_teste_amplitude(teste_nome, TestesOrtopedicos.TESTES_AMPLITUDE[teste_nome])
         
         self.texto_amplitude.delete(1.0, tk.END)
         self.texto_amplitude.insert(1.0, conteudo)
@@ -180,37 +154,7 @@ PASSOS PARA REALIZAÇÃO:
         if not teste_nome:
             return
         
-        teste = TestesOrtopedicos.TESTES_ESPECIAIS[teste_nome]
-        
-        conteudo = f"""
-╔════════════════════════════════════════════════════════════════════╗
-║              {teste_nome.upper()}
-╚════════════════════════════════════════════════════════════════════╝
-
-DESCRIÇÃO:
-{teste['descricao']}
-
-RESULTADO POSITIVO:
-{teste['positivo']}
-
-SENSIBILIDADE: {teste.get('sensibilidade', 'N/A')}
-ESPECIFICIDADE: {teste.get('especificidade', 'N/A')}
-
-PASSOS PARA REALIZAÇÃO:
-"""
-        for passo in teste['passos']:
-            conteudo += f"\n{passo}"
-        
-        conteudo += f"""
-
-INTERPRETAÇÃO:
-{teste['interpretacao']}
-
-NOTA CLÍNICA:
-Este é um teste importante para diagnóstico diferencial.
-Combine com outros testes e achados clínicos para conclusão.
-Nunca realize diagnóstico baseado em apenas um teste.
-"""
+        conteudo = formatar_teste_especial(teste_nome, TestesOrtopedicos.TESTES_ESPECIAIS[teste_nome])
         
         self.texto_especial.delete(1.0, tk.END)
         self.texto_especial.insert(1.0, conteudo)
@@ -280,50 +224,7 @@ Nunca realize diagnóstico baseado em apenas um teste.
         if not teste_nome:
             return
         
-        teste = TestesOrtopedicos.TESTES_FORCA[teste_nome]
-        
-        conteudo = f"""
-╔════════════════════════════════════════════════════════════════════╗
-║              TESTE DE FORÇA: {teste_nome.upper()}
-╚════════════════════════════════════════════════════════════════════╝
-
-DESCRIÇÃO:
-{teste['descricao']}
-
-MATERIAL UTILIZADO:
-{teste.get('teste', 'Teste manual')}
-
-VALORES NORMAIS:
-"""
-        if 'normal' in teste:
-            conteudo += f"{teste['normal']}\n"
-        if 'normal_masculino' in teste:
-            conteudo += f"Masculino: {teste['normal_masculino']}\n"
-            conteudo += f"Feminino: {teste['normal_feminino']}\n"
-        
-        conteudo += f"""
-
-PASSOS:
-"""
-        for passo in teste['passos']:
-            conteudo += f"\n{passo}"
-        
-        if 'escala' in teste:
-            conteudo += "\n\nESCALA DE FORÇA (Grau 0-5):\n"
-            for grau, descricao in teste['escala'].items():
-                conteudo += f"\nGrau {grau}: {descricao}"
-        
-        conteudo += f"""
-
-INTERPRETAÇÃO:
-{teste.get('avaliacao', teste.get('interpretacao', 'Veja valores normais acima'))}
-
-DICAS:
-• Sempre teste bilateralmente
-• Compare com o lado não afetado
-• Não realize teste se há dor intensa
-• Paciente deve estar relaxado mas atento
-"""
+        conteudo = formatar_teste_forca(teste_nome, TestesOrtopedicos.TESTES_FORCA[teste_nome])
         
         self.texto_forca.delete(1.0, tk.END)
         self.texto_forca.insert(1.0, conteudo)
@@ -361,42 +262,8 @@ DICAS:
         self.texto_sensibilidade.pack(fill=tk.BOTH, expand=True)
         
         # Preencher com informações dos testes
-        conteudo = "TESTES DE SENSIBILIDADE\n" + "="*70 + "\n\n"
-        for nome_teste, teste in TestesOrtopedicos.TESTES_SENSIBILIDADE.items():
-            conteudo += f"\n{'─'*70}\n"
-            conteudo += f"{nome_teste.upper()}\n"
-            conteudo += f"{'─'*70}\n"
-            conteudo += f"Descrição: {teste['descricao']}\n"
-            conteudo += f"Material: {teste['material']}\n"
-            conteudo += f"\nPASSOS:\n"
-            for passo in teste['passos']:
-                conteudo += f"{passo}\n"
-
-            valores_normais = {chave: valor for chave, valor in teste.items()
-                                if chave.startswith('normal_')}
-            if valores_normais:
-                rotulos_normais = {
-                    'normal_polpa_digital': 'Polpa digital',
-                    'normal_palma': 'Palma',
-                    'normal_dorso_mao': 'Dorso da mão',
-                    'normal_dorso_antebraco': 'Dorso do antebraço',
-                }
-                conteudo += "\nVALORES NORMAIS:\n"
-                for chave, valor in valores_normais.items():
-                    rotulo = rotulos_normais.get(
-                        chave, chave.replace('normal_', '').replace('_', ' ').capitalize())
-                    conteudo += f"{rotulo}: {valor}\n"
-
-            if 'classificacao' in teste:
-                conteudo += "\nCLASSIFICAÇÃO:\n"
-                for filamento, resultado in teste['classificacao'].items():
-                    conteudo += f"{filamento}: {resultado}\n"
-
-            if 'interpretacao' in teste:
-                conteudo += f"\nINTERPRETAÇÃO:\n{teste['interpretacao']}\n"
-
-            conteudo += "\n"
-
+        conteudo = formatar_testes_sensibilidade(TestesOrtopedicos.TESTES_SENSIBILIDADE)
+        
         self.texto_sensibilidade.insert(1.0, conteudo)
         self.texto_sensibilidade.config(state=tk.DISABLED)
     
@@ -420,25 +287,7 @@ DICAS:
     
     def atualizar_resumo(self):
         """Atualiza resumo com dados coletados"""
-        conteudo = f"""
-RESUMO DO EXAME FÍSICO ORTOPÉDICO
-Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
-
-{'='*70}
-
-DADOS COLETADOS:
-
-"""
-        for categoria, dados in self.dados_exame.items():
-            conteudo += f"\n{categoria}:\n"
-            if isinstance(dados, list):
-                for item in dados:
-                    if isinstance(item, dict):
-                        for chave, valor in item.items():
-                            conteudo += f"  • {chave}: {valor}\n"
-                    else:
-                        conteudo += f"  • {item}\n"
-            conteudo += "\n"
+        conteudo = formatar_resumo(self.dados_exame, datetime.now())
         
         self.texto_resumo.config(state=tk.NORMAL)
         self.texto_resumo.delete(1.0, tk.END)

@@ -84,7 +84,7 @@ Dorso do antebraço:         30-40 mm
 9. TESTES CLÁSSICOS - SENSIBILIDADE E ESPECIFICIDADE
 ═══════════════════════════════════════════════════════════════════════════
 
-Teste de Tinnel:            Sensibilidade: 72-95%    Especificidade: 95%
+Teste de Tinel:            Sensibilidade: 72-95%    Especificidade: 95%
 Teste de Phalen:            Sensibilidade: 51-93%    Especificidade: 95-98%
 Teste de Lachman:           Sensibilidade: 72-98%    Especificidade: 96-99%
 Teste de Apprehension:      Sensibilidade: 50-72%    Especificidade: 96-98%
