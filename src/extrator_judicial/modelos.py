@@ -8,6 +8,7 @@ CAMPOS_INICIAL = ("inicial_secao", "pedido_item", "data_mencionada", "cid_mencio
 ESTADOS = ("a_revisar", "confirmado", "corrigido", "rejeitado")
 NATUREZAS = ("alegacao", "informacao_documental", "anotacao_humana")
 TITULO = "RASCUNHO — REVISÃO NECESSÁRIA"
+TIPOS_PERICIA = ("previdenciaria", "trabalhista", "curatela")
 
 
 def atualizar_resumo(dados):
@@ -35,10 +36,21 @@ def atualizar_resumo(dados):
         pendencias.append("Tipo de perícia e objeto específico a confirmar por humano.")
     if not dados["pericia"]["objeto"]:
         pendencias.append("Objeto específico a preencher pelo perito.")
-    avisos = [
-        f'Página {p["numero"]}: necessita OCR; ausência de texto não significa ausência de informação.'
-        for p in dados["paginas"] if p["necessita_ocr"]
-    ]
+    avisos = []
+    for p in dados["paginas"]:
+        if not p["necessita_ocr"]:
+            continue
+        if "ocr" in p and p["texto"].strip():
+            avisos.append(
+                f'Página {p["numero"]}: texto obtido por OCR ({p["ocr"]["motor"]}); '
+                "pode conter erros de leitura, conferir no original."
+            )
+        elif "ocr" in p:
+            avisos.append(f'Página {p["numero"]}: OCR sem texto reconhecido; conferir no original.')
+        else:
+            avisos.append(
+                f'Página {p["numero"]}: necessita OCR; ausência de texto não significa ausência de informação.'
+            )
     if any(c["campo"] in CAMPOS_INICIAL for c in dados["candidatos"]):
         avisos.append(
             "Petição inicial delimitada pelo ID PJe da página 1 (conferir). Seções, pedidos, "
@@ -48,7 +60,7 @@ def atualizar_resumo(dados):
         "Informação documental não significa verdade comprovada.",
         "Localização por indicadores: candidatos, não segmentação completa. "
         "Blocos limitados à página, exceto seções e pedidos da inicial PJe; conferir continuação no PDF.",
-        "OCR, inventário médico/CTPS e checklist especializado não implementados.",
+        "Inventário médico/CTPS completo não implementado; pré-laudo Word é roteiro a preencher.",
     ])
     dados["ficha"] = ficha
     dados["pendencias"] = pendencias

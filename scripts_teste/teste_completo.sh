@@ -95,6 +95,12 @@ extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \
 grep -q "RASCUNHO — REVISÃO NECESSÁRIA" "$S/rascunho.md" || erro "Rascunho sem aviso de revisão"
 grep -q "necessita OCR" "$S/rascunho.md" || erro "Página sem texto deveria indicar OCR"
 sucesso "JSON e Markdown exportados como rascunho"
+extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \
+    --docx "$S/pre_laudo.docx" || erro "Exportação Word falhou"
+[[ -s "$S/pre_laudo.docx" ]] || erro "Pré-laudo Word vazio"
+extrator-judicial pre-laudo "$PDF" --modelo curatela \
+    --saida "$S/revisao-curatela.json" --docx "$S/pre_laudo_curatela.docx" || erro "Comando pre-laudo falhou"
+sucesso "Pré-laudos Word gerados (trabalhista pelo tipo confirmado; curatela direto)"
 
 fase "FASE 7: Proteções"
 if extrator-judicial exportar "$PDF" --revisao "$S/revisao-05.json" \

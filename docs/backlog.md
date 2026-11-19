@@ -14,6 +14,11 @@
 - [x] Gerador de PDF fictício offline e roteiro ponta a ponta (bash/PowerShell, CI)
 - [x] Formato PJe: órgão julgador, nomeação em substituição, quesitos numerados
 - [x] Inicial PJe: seções, itens de pedido, datas e CID citados (alegações, com páginas)
+- [x] OCR local opcional (Tesseract) das páginas sem texto, registrado e revalidado
+- [x] Pré-laudo Word: modelos previdenciário, trabalhista e curatela, cabeçalho e logotipo
+- [x] Exame físico direcionado pelos CID dos autos; índice de documentos por página
+- [x] Quesitos transcritos por origem (Juízo, autor, réu/INSS, Ministério Público)
+- [x] Correção: número CNJ não é mais confundido com data citada
 
 Dependência de execução: pypdf (BSD-3-Clause); comandos e arquitetura no README.
 Os itens abaixo permanecem como objetivos de expansão, não concluídos.

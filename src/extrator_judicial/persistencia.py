@@ -1,4 +1,4 @@
-"""JSON UTF-8 e gravação atômica por arquivo, exclusiva por padrão."""
+"""JSON UTF-8, Word binário e gravação atômica por arquivo, exclusiva por padrão."""
 
 import json
 import os
@@ -54,8 +54,11 @@ def salvar_arquivos(saidas, protegidos=(), sobrescrever=False):
     temporarios = []
     try:
         for (caminho, texto) in saidas:
+            # Texto em UTF-8; bytes (por exemplo .docx) gravados como estão.
+            binario = isinstance(texto, bytes)
             with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=Path(caminho).parent, delete=False
+                mode="wb" if binario else "w", encoding=None if binario else "utf-8",
+                dir=Path(caminho).parent, delete=False,
             ) as arquivo:
                 temporarios.append(arquivo.name)
                 arquivo.write(texto)

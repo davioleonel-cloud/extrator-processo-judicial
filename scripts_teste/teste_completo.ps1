@@ -86,6 +86,8 @@ try {
 
     Fase "FASE 6: Exportação"
     if (-not (Cli exportar $Pdf --revisao "$S\revisao-05.json" --json "$S\relatorio.json" --markdown "$S\rascunho.md")) { Erro "Exportação falhou" }
+    if (-not (Cli exportar $Pdf --revisao "$S\revisao-05.json" --docx "$S\pre_laudo.docx")) { Erro "Exportação Word falhou" }
+    if (-not (Cli pre-laudo $Pdf --modelo curatela --saida "$S\revisao-curatela.json" --docx "$S\pre_laudo_curatela.docx")) { Erro "Comando pre-laudo falhou" }
     $Md = Get-Content "$S\rascunho.md" -Raw -Encoding UTF8
     if ($Md -notmatch "RASCUNHO" -or $Md -notmatch "necessita OCR") { Erro "Rascunho incompleto" }
     Sucesso "JSON e Markdown exportados como rascunho"
