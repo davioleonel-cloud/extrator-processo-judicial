@@ -154,3 +154,65 @@ def test_cli_pre_laudo_e_exportar_docx(pdf_ficticio, tmp_path, capsys):
     assert main(["exportar", str(pdf_ficticio), "--revisao", str(classificado), "--docx", str(so_word)]) == 0
     corpo, _ = _texto(so_word.read_bytes())
     assert "Capacidade civil fictícia" in corpo and "Escalas cognitivas" in corpo
+
+
+def _documento(pdf, modelo="previdenciario", logo=None):
+    dados = extrair(*ler_pdf(pdf))
+    return docx.Document(io.BytesIO(gerar_pre_laudo(dados, modelo, carregar_perfil(), logo)))
+
+
+def _destaques(documento):
+    """Texto destacado agrupado por cor, no corpo e nas tabelas."""
+    from docx.enum.text import WD_COLOR_INDEX
+    paragrafos = list(documento.paragraphs)
+    for tabela in documento.tables:
+        for linha in tabela.rows:
+            for celula in linha.cells:
+                paragrafos.extend(celula.paragraphs)
+    cores = {}
+    for paragrafo in paragrafos:
+        for run in paragrafo.runs:
+            if run.font.highlight_color is not None:
+                cores.setdefault(run.font.highlight_color, []).append(run.text)
+    return cores, WD_COLOR_INDEX
+
+
+def test_cores_distintas_para_preencher_e_conferir(pdf_previdenciario):
+    cores, indice = _destaques(_documento(pdf_previdenciario))
+    assert set(cores) == {indice.YELLOW, indice.GRAY_25}
+    assert set(cores[indice.YELLOW]) == {"[preencher]"}
+    assert any("5000000-00.2099.4.03.6100" in texto for texto in cores[indice.GRAY_25])
+    assert "[preencher]" not in cores[indice.GRAY_25]
+
+
+def test_tabelas_repetem_cabecalho_e_nao_partem_linhas(pdf_previdenciario):
+    from docx.oxml.ns import qn
+    documento = _documento(pdf_previdenciario)
+    assert documento.tables
+    for tabela in documento.tables:
+        assert tabela.rows[0]._tr.trPr.find(qn("w:tblHeader")) is not None
+        for linha in tabela.rows:
+            assert linha._tr.trPr.find(qn("w:cantSplit")) is not None
+        larguras = [coluna.width.cm for coluna in tabela.columns]
+        assert abs(sum(larguras) - 16) < 0.05
+
+
+def test_titulo_com_estilo_e_logotipo_com_texto_alternativo(pdf_previdenciario, tmp_path):
+    import base64
+    logo = tmp_path / "logo.png"
+    logo.write_bytes(base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    ))
+    documento = _documento(pdf_previdenciario, logo=logo)
+    titulo = [p for p in documento.paragraphs if p.style.name == "Title"]
+    assert [p.text for p in titulo] == ["PRÉ LAUDO MÉDICO PERICIAL"]
+    cabecalho = documento.sections[0].header._element.xml
+    assert 'descr="Logotipo do perito"' in cabecalho
+    assert "Fundo amarelo" in "\n".join(p.text for p in documento.paragraphs)
+
+
+def test_tabela_com_larguras_incoerentes_recusada():
+    from extrator_judicial.pre_laudo import _Documento
+    documento = _Documento(carregar_perfil(), None)
+    with pytest.raises(ValueError):
+        documento.tabela(("A", "B"), [("1", "2")], larguras=(5, 5))

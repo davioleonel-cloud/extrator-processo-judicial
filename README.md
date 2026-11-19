@@ -161,8 +161,8 @@ ou é escolhido com `--modelo`. `--json`/`--markdown`/`--docx` são combináveis
 Conteúdo do documento:
 
 - Preâmbulo e tabela de identificação preenchidos com os candidatos, cada um
-  com a folha de origem. Valores não revisados ou divergentes ficam **em
-  amarelo com "(conferir)"**; ausentes viram `[preencher]`. Candidatos
+  com a folha de origem. Valores não revisados ou divergentes ficam **com fundo
+  cinza e "(conferir)"**; ausentes viram `[preencher]` **com fundo amarelo**. Candidatos
   rejeitados são ignorados; confirmados/corrigidos têm prioridade.
 - Síntese dos autos: pedidos e seções da inicial, **índice de páginas com
   possíveis documentos relevantes** (atestados, exames, CNIS, CAT, comunicação
@@ -183,6 +183,10 @@ Conteúdo do documento:
 - Conclusão como **roteiro de marcação**, sem resposta pré-definida; quesitos
   transcritos por origem (Juízo, autor, réu/INSS, Ministério Público), um a um,
   com "Resposta: [preencher]"; encerramento e referências.
+
+Tabelas repetem a linha de cabeçalho em cada página e não partem linhas entre
+páginas. Fonte, tamanhos, espaçamentos, margens e cores ficam centralizados no
+início de `pre_laudo.py` (`FONTE`, `TAMANHOS`, `ESPACOS`, `PAGINA`, `DESTAQUES`).
 
 Nada no Word é conclusão automática. Cabeçalho padrão embutido (`perfil.py`);
 para outro perito ou para fixar logotipo e cidade, use `--perfil perfil.json`
