@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "extrator-judicial"
-version = "0.1.0"
+version = "0.2.0"
 description = "Organização documental local e revisável de um PDF judicial"
 requires-python = ">=3.10"
-dependencies = ["pypdf==6.20.0"]
+dependencies = ["pypdf==6.20.0", "python-docx==1.2.0"]
+
+[project.optional-dependencies]
+ocr = ["pypdfium2==5.15.2"]
 
 [project.scripts]
 extrator-judicial = "extrator_judicial.cli:main"

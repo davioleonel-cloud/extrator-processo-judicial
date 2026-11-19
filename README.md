@@ -10,7 +10,8 @@ legados permanecem preservados e não fazem parte desta instalação.
 - Leitura de texto página a página, na ordem original, com numeração iniciada em
   1, nome do arquivo e SHA-256. O PDF original não é dividido nem alterado.
 - Páginas sem texto permanecem na saída como **necessita OCR**, inclusive em PDFs
-  mistos. Isso não significa ausência de informação. **Não há OCR implementado.**
+  mistos. Isso não significa ausência de informação. Com `--ocr`, essas páginas
+  são lidas pelo **Tesseract local** (ver "OCR" abaixo); o texto fica marcado como OCR.
 - Candidatos conservadores para número do processo, autores, réus, vara, juiz,
   tipo de ação e pedido, por rótulos em português (`Autor:`, `Requerente:`,
   `Réu:`, `Reclamada:`, `Classe processual:`, `Órgão Julgador de Origem:`,
@@ -35,6 +36,9 @@ legados permanecem preservados e não fazem parte desta instalação.
 - Revisão por comandos, com confirmação, correção e rejeição persistidas.
 - Exportação JSON e Markdown editável, com ficha, fontes, páginas, avisos,
   pendências, checklist **documental genérico** e esqueleto de pré-laudo.
+- **Pré-laudo em Word (.docx)** para preencher no ato pericial, com cabeçalho do
+  perito e logotipo (90 px), em três modelos: `previdenciario`, `trabalhista` e
+  `curatela`. Ver "Pré-laudo Word" abaixo.
 
 Toda exportação é **RASCUNHO — REVISÃO NECESSÁRIA**, mesmo após revisar campos.
 Informação documental não significa verdade comprovada; confirmação significa
@@ -55,8 +59,9 @@ python -m pytest
 python -m flake8 src tests --max-line-length=127
 ```
 
-Dependência de execução: **pypdf 6.20.0**, biblioteca mantida, licença
-**BSD-3-Clause** ([projeto](https://pypdf.readthedocs.io/)). A versão está explícita
+Dependências de execução: **pypdf 6.20.0** (BSD-3-Clause,
+[projeto](https://pypdf.readthedocs.io/)) e **python-docx 1.2.0** (MIT); OCR
+opcional com **pypdfium2** e o programa Tesseract (ver "OCR"). A versão está explícita
 em `pyproject.toml`; parsing binário não é reinventado. A instalação pode acessar
 o índice de pacotes; **a execução do produto é inteiramente local**, sem IA,
 servidor, banco externo, telemetria, upload ou chamadas externas.
@@ -140,6 +145,67 @@ PDFs inválidos, corrompidos, ausentes e protegidos recebem mensagens sem conte�
 ou caminho absoluto. Nesta etapa, **qualquer PDF criptografado é recusado**,
 inclusive proteção com senha vazia; use uma cópia sem proteção obtida com autorização.
 
+## Pré-laudo Word
+
+Um passo só (extrai, grava a revisão JSON e gera o Word):
+
+```bash
+extrator-judicial pre-laudo entradas/processo.pdf --modelo previdenciario \
+  --saida saidas/revisao-01.json --docx saidas/pre_laudo.docx --logo logo.png
+```
+
+Ou, após revisar e classificar (`--tipo previdenciaria|trabalhista|curatela`),
+`exportar ... --docx saidas/pre_laudo.docx`; o modelo segue o tipo confirmado,
+ou é escolhido com `--modelo`. `--json`/`--markdown`/`--docx` são combináveis.
+
+Conteúdo do documento:
+
+- Preâmbulo e tabela de identificação preenchidos com os candidatos, cada um
+  com a folha de origem. Valores não revisados ou divergentes ficam **em
+  amarelo com "(conferir)"**; ausentes viram `[preencher]`. Candidatos
+  rejeitados são ignorados; confirmados/corrigidos têm prioridade.
+- Síntese dos autos: pedidos e seções da inicial, **índice de páginas com
+  possíveis documentos relevantes** (atestados, exames, CNIS, CAT, comunicação
+  de decisão do INSS, CTPS, PPP; no modelo curatela, neurologia, testes
+  cognitivos, estudo social), CID citados (com folhas) e datas para classificar.
+- Dados específicos: laborais e previdenciários (espécie 31/91, CAT, afastamento,
+  reabilitação), história ocupacional, ou dados sociais e temporalidade (curatela).
+- **Exame físico direcionado pelos CID** dos autos (coluna, ombro, cotovelo,
+  punho e mão, quadril, joelho, tornozelo e pé, neurológico, estado mental,
+  cardiorrespiratório), com amplitudes de referência AAOS e manobras com o
+  significado do achado positivo. Sem CID reconhecido, roteiro ortopédico geral.
+  Curatela inclui MEEM (cortes de Brucki et al., 2003), MoCA, CDR, Pfeffer, Katz,
+  Lawton e capacidades específicas para atos patrimoniais e negociais.
+- Discussão com espaço para a análise do caso e **fundamentação de apoio**
+  (Lei 8.213/1991, Decreto 3.048/1999, Tema 416 do STJ, Súmula 47 da TNU;
+  Código Civil, Lei 13.146/2015, CPC arts. 753 e 755; Resolução CFM 2.323/2022),
+  em linguagem simples e sem hífens/travessões na prosa. Conferir vigência.
+- Conclusão como **roteiro de marcação**, sem resposta pré-definida; quesitos
+  transcritos por origem (Juízo, autor, réu/INSS, Ministério Público), um a um,
+  com "Resposta: [preencher]"; encerramento e referências.
+
+Nada no Word é conclusão automática. Cabeçalho padrão embutido (`perfil.py`);
+para outro perito ou para fixar logotipo e cidade, use `--perfil perfil.json`
+(modelo em `docs/perfil_perito.exemplo.json`; `logo` relativo ao JSON).
+
+## OCR
+
+```bash
+python -m pip install -e ".[ocr]"      # pypdfium2 (BSD-3-Clause / Apache-2.0)
+# Tesseract com português: Ubuntu/Debian  sudo apt install tesseract-ocr tesseract-ocr-por
+#                          macOS          brew install tesseract tesseract-lang
+#                          Windows        instalador UB Mannheim, marcar "Portuguese"
+extrator-judicial extrair entradas/processo.pdf --ocr --saida saidas/revisao-01.json
+```
+
+Só páginas **sem texto** passam por OCR (300 dpi, idioma `por`; ajustáveis com
+`--ocr-dpi` e `--ocr-idioma`). Tudo é local. O texto e o motor/versão ficam na
+revisão JSON; ao reabrir, o OCR **não é refeito**, e o texto registrado só é
+aceito em páginas que de fato não têm texto no PDF. Candidatos dessas páginas
+têm `fonte.texto_ocr = true` e avisos pedem conferência. No pré-laudo, CID lidos
+por OCR com dígito no lugar da letra (ex.: `552.5` por `S52.5`) são recuperados e
+marcados "(OCR, conferir)".
+
 ## Arquitetura e modelo de revisão
 
 Pacote em `src/extrator_judicial/`, com responsabilidades separadas:
@@ -152,7 +218,11 @@ Pacote em `src/extrator_judicial/`, com responsabilidades separadas:
 | `revisao.py` | Transições auditáveis, confirmação humana e validação |
 | `persistencia.py` | JSON UTF-8 e proteção contra sobrescrita |
 | `relatorios.py` | Relatórios de rascunho e checklist documental |
-| `cli.py` | Comandos `extrair`, `listar`, `revisar`, `classificar`, `exportar` (também `python -m extrator_judicial`) |
+| `ocr.py` | OCR opcional (pypdfium2 + Tesseract local) e reaproveitamento validado |
+| `pre_laudo.py` | Montagem do pré-laudo Word a partir dos candidatos revisados |
+| `conteudo_pericial.py` | Roteiros de exame, índice documental, fundamentação e referências |
+| `perfil.py` | Cabeçalho do perito (padrão embutido ou JSON) |
+| `cli.py` | Comandos `extrair`, `listar`, `revisar`, `classificar`, `exportar`, `pre-laudo` (também `python -m extrator_judicial`) |
 
 O JSON de revisão contém `versao_esquema`, `documento`, `paginas`, `candidatos`,
 `pericia`, `ficha`, `avisos`, `pendencias` e `status`. Cada candidato tem ID,
@@ -185,7 +255,7 @@ Ausência de candidato não demonstra ausência do documento.
 
 Próximas entregas: motivo e doença alegada descritos em texto corrido na inicial,
 inventário médico/CTPS, classificação humana das datas (emissão/atendimento/início alegado),
-histórico e linha do tempo, OCR e interface visual local. Cargo não deve virar
+histórico e linha do tempo e interface visual local. Cargo não deve virar
 atividade efetiva inferida. Evidências contraditórias e informações a esclarecer
 devem permanecer rastreáveis. Checklist especializado depende de classificação
 **confirmada por humano**, objeto e validação profissional; ainda não é gerado.

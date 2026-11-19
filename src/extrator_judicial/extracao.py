@@ -53,7 +53,8 @@ def _cabecalho(linha, vizinhas=""):
         for origem, padrao in (
             ("juiz", r"\b(?:juiz|juizo|magistrado)\b"),
             ("autor", r"\b(?:autor|autora|autores|requerente|reclamante)\b"),
-            ("reu", r"\b(?:reu|re|reus|requerido|requerida|reclamado|reclamada)\b"),
+            ("reu", r"\b(?:reu|re|reus|requerido|requerida|reclamado|reclamada|inss|autarquia)\b"),
+            ("ministerio_publico", r"\b(?:ministerio publico|parquet|mp)\b"),
         ):
             if re.search(padrao, texto):
                 origens.append(origem)
@@ -70,12 +71,15 @@ def _cabecalho(linha, vizinhas=""):
 
 def extrair(documento, paginas):
     dados = novo_modelo(documento, paginas)
+    paginas_ocr = {p["numero"] for p in paginas if "ocr" in p}
 
     def adicionar(campo, original, numero, trecho, origem="indefinida", pagina_final=None):
         natureza = "alegacao" if campo in ALEGACOES else "informacao_documental"
         fonte = {"documento": documento["hash"], "pagina": numero, "trecho": trecho}
         if pagina_final is not None:
             fonte["pagina_final"] = pagina_final
+        if paginas_ocr.intersection(range(numero, (pagina_final or numero) + 1)):
+            fonte["texto_ocr"] = True
         dados["candidatos"].append({
             "id": f'c{len(dados["candidatos"]) + 1:04d}',
             "campo": campo,

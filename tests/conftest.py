@@ -66,3 +66,43 @@ def pdf_ficticio(criar_pdf):
         "Petição inicial\n"
         "A parte alega evento fictício; não é fato comprovado.\n",
     ])
+
+
+@pytest.fixture
+def criar_pdf_imagem(tmp_path, criar_pdf):
+    """PDF fictício cuja página é só imagem (simula documento digitalizado)."""
+    pdfium = pytest.importorskip("pypdfium2")
+    import zlib
+
+    from pypdf.generic import NumberObject, StreamObject
+
+    def criar(texto, nome="digitalizado.pdf"):
+        origem = criar_pdf([texto], nome="origem_" + nome)
+        documento = pdfium.PdfDocument(str(origem))
+        bitmap = documento[0].render(scale=200 / 72, grayscale=True)
+        bruto = bytes(bitmap.buffer)
+        linhas = b"".join(
+            bruto[i * bitmap.stride:i * bitmap.stride + bitmap.width] for i in range(bitmap.height)
+        )
+        documento.close()
+        writer = PdfWriter()
+        pagina = writer.add_blank_page(width=612, height=792)
+        imagem = StreamObject()
+        imagem._data = zlib.compress(linhas)
+        imagem.update({
+            NameObject("/Type"): NameObject("/XObject"), NameObject("/Subtype"): NameObject("/Image"),
+            NameObject("/Width"): NumberObject(bitmap.width), NameObject("/Height"): NumberObject(bitmap.height),
+            NameObject("/ColorSpace"): NameObject("/DeviceGray"),
+            NameObject("/BitsPerComponent"): NumberObject(8), NameObject("/Filter"): NameObject("/FlateDecode"),
+        })
+        pagina[NameObject("/Resources")] = DictionaryObject({
+            NameObject("/XObject"): DictionaryObject({NameObject("/Im1"): writer._add_object(imagem)}),
+        })
+        conteudo = DecodedStreamObject()
+        conteudo.set_data(b"q 612 0 0 792 0 0 cm /Im1 Do Q")
+        pagina[NameObject("/Contents")] = writer._add_object(conteudo)
+        caminho = tmp_path / nome
+        with caminho.open("wb") as arquivo:
+            writer.write(arquivo)
+        return caminho
+    return criar

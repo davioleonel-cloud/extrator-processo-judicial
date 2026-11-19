@@ -3,7 +3,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 
-from .modelos import ESTADOS, atualizar_resumo
+from .modelos import ESTADOS, TIPOS_PERICIA, atualizar_resumo
 from .pdf import ErroExtrator
 
 
@@ -35,7 +35,7 @@ def revisar(dados, identificador, acao, valor=None):
 
 
 def classificar(dados, tipo, objeto):
-    if tipo not in ("trabalhista", "previdenciaria") or not isinstance(objeto, str) or not objeto.strip():
+    if tipo not in TIPOS_PERICIA or not isinstance(objeto, str) or not objeto.strip():
         raise ErroExtrator("Confirmação humana exige tipo permitido e objeto específico.")
     pericia = dados["pericia"]
     pericia["historico"].append({

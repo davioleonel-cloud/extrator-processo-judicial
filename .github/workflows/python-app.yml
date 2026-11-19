@@ -20,14 +20,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - name: Install dependencies
       run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q tesseract-ocr tesseract-ocr-por
         python -m pip install --upgrade pip
         pip install flake8 pytest
-        python -m pip install -e .
+        python -m pip install -e ".[ocr]"
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

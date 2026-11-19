@@ -3,6 +3,8 @@
 /saidas/
 *.pdf
 *.json
+*.docx
+!docs/perfil_perito.exemplo.json
 # Ambiente, testes e instalação
 .venv/
 __pycache__/

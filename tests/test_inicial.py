@@ -98,3 +98,14 @@ def test_sem_rodape_pje_nao_delimita_inicial(pdf_ficticio):
     dados = extrair(*ler_pdf(pdf_ficticio))
     assert not [c for c in dados["candidatos"] if c["campo"] in ("inicial_secao", "pedido_item")]
     assert "Petição inicial — alegações" not in markdown(dados)
+
+
+def test_numero_cnj_nao_e_data(criar_pdf):
+    pdf = criar_pdf([
+        "Processo: 5000000-00.2099.4.03.6100\n"
+        "1. DOS FATOS\n"
+        "Fato fictício em 15/06/2098.\n"
+        + rodape("abc1234", 1),
+    ])
+    datas = [c["valor"] for c in extrair(*ler_pdf(pdf))["candidatos"] if c["campo"] == "data_mencionada"]
+    assert datas == ["Fato fictício em 15/06/2098."]

@@ -19,6 +19,8 @@ DATA = re.compile(
     r"|\b\d{1,2} de (?:janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro"
     r"|outubro|novembro|dezembro) de \d{4}\b"
 )
+# Número único CNJ (NNNNNNN-DD.AAAA.J.TR.OOOO) não é data: "4.03.6100" parecia data.
+NUMERO_CNJ = re.compile(r"\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b")
 CID = re.compile(r"\bCID(?:-?10|-?11)?\s*[:–-]?\s*[A-TV-Z]\d{2}(?:\.\d{1,2})?\b|\b[A-TV-Z]\d{2}\.\d{1,2}\b")
 
 
@@ -91,7 +93,7 @@ def extrair_inicial(paginas, adicionar):
     for indice, (numero, linha) in enumerate(linhas):
         # Linha vizinha dá contexto; o tipo da data (emissão, atendimento, início) é humano.
         contexto = _texto(linhas[max(0, indice - 1):indice + 2])
-        if DATA.search(extracao.normalizar(linha)):
+        if DATA.search(NUMERO_CNJ.sub(" ", extracao.normalizar(linha))):
             adicionar("data_mencionada", linha.strip(), contexto, numero, numero)
         if CID.search(linha):
             adicionar("cid_mencionado", linha.strip(), contexto, numero, numero)
