@@ -33,6 +33,27 @@ ORIGENS_QUESITOS = (
 ITEM_QUESITO = re.compile(r"^\s*(\d{1,3}|[a-z])\s*[.)–:-]\s*\S")
 LOGO_ALTURA_PX = 90
 
+# ---------------------------------------------------------------------------
+# Valores visuais do documento (únicos pontos a alterar para mudar o padrão).
+# ---------------------------------------------------------------------------
+FONTE = "Arial"
+TAMANHOS = {  # pt
+    "titulo": 15, "subtitulo": 11.5, "secao": 12.5, "subsecao": 11, "corpo": 11,
+    "tabela": 9.5, "nota": 9.5, "aviso": 9, "cabecalho_nome": 10, "cabecalho": 9, "rodape": 8,
+}
+ESPACOS = {"paragrafo": 4, "fim_cabecalho": 12, "linhas_cabecalho": 0}  # pt
+ENTRELINHAS = 1.15
+PAGINA = {"altura": 29.7, "largura": 21, "superior": 2, "inferior": 2, "esquerda": 3, "direita": 2}  # cm
+LARGURA_UTIL_CM = PAGINA["largura"] - PAGINA["esquerda"] - PAGINA["direita"]
+# Marcadores no texto: [preencher] = dado ausente; ⟦…⟧ = dado extraído a conferir.
+MARCADOR = re.compile(r"(\[preencher\]|⟦[^⟧]*⟧)")
+DESTAQUES = {"preencher": "YELLOW", "conferir": "GRAY_25"}  # WD_COLOR_INDEX
+LEGENDA = (
+    "Rascunho de trabalho para o ato pericial. Fundo amarelo: dado a preencher na perícia. "
+    "Fundo cinza: dado extraído dos autos que precisa ser conferido na folha indicada. "
+    "Dados extraídos automaticamente não substituem a leitura dos autos."
+)
+
 
 def _docx():
     try:
@@ -144,26 +165,34 @@ class _Documento:
         from docx.shared import Cm, Pt
         self.Pt, self.Cm = Pt, Cm
         self.alinhamento = WD_ALIGN_PARAGRAPH
-        self.amarelo = WD_COLOR_INDEX.YELLOW
+        self.destaques = {nome: getattr(WD_COLOR_INDEX, cor) for nome, cor in DESTAQUES.items()}
         self.doc = docx.Document()
         estilo = self.doc.styles["Normal"]
-        estilo.font.name = "Arial"
-        estilo.font.size = Pt(11)
-        estilo.paragraph_format.space_after = Pt(4)
-        estilo.paragraph_format.line_spacing = 1.15
+        estilo.font.name = FONTE
+        estilo.font.size = Pt(TAMANHOS["corpo"])
+        estilo.paragraph_format.space_after = Pt(ESPACOS["paragrafo"])
+        estilo.paragraph_format.line_spacing = ENTRELINHAS
         from docx.oxml.ns import qn
-        for nome, tamanho in (("Heading 1", 12.5), ("Heading 2", 11), ("Title", 16)):
+        for nome, token in (("Heading 1", "secao"), ("Heading 2", "subsecao"), ("Title", "titulo")):
             titulo = self.doc.styles[nome]
-            titulo.font.name = "Arial"
-            titulo.font.size = Pt(tamanho)
+            titulo.font.name = FONTE
+            titulo.font.size = Pt(TAMANHOS[token])
             titulo.font.color.rgb = None
             fontes = titulo.element.rPr.rFonts
             for atributo in ("w:asciiTheme", "w:hAnsiTheme", "w:eastAsiaTheme", "w:cstheme"):
                 fontes.attrib.pop(qn(atributo), None)
+        # Título sem a borda inferior colorida do modelo padrão do Word.
+        titulo = self.doc.styles["Title"]
+        borda = titulo.element.pPr.find(qn("w:pBdr")) if titulo.element.pPr is not None else None
+        if borda is not None:
+            titulo.element.pPr.remove(borda)
+        titulo.font.bold = True
+        titulo.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        titulo.paragraph_format.space_after = Pt(ESPACOS["paragrafo"])
         secao = self.doc.sections[0]
-        secao.page_height, secao.page_width = Cm(29.7), Cm(21)
-        secao.top_margin = secao.bottom_margin = Cm(2)
-        secao.left_margin, secao.right_margin = Cm(3), Cm(2)
+        secao.page_height, secao.page_width = Cm(PAGINA["altura"]), Cm(PAGINA["largura"])
+        secao.top_margin, secao.bottom_margin = Cm(PAGINA["superior"]), Cm(PAGINA["inferior"])
+        secao.left_margin, secao.right_margin = Cm(PAGINA["esquerda"]), Cm(PAGINA["direita"])
         self._cabecalho(secao, perfil, logo)
         self._rodape(secao)
 
@@ -177,7 +206,8 @@ class _Documento:
                 raise ErroExtrator("Logotipo não encontrado; confira o caminho informado.")
             try:
                 # 90 px a 96 dpi = 67,5 pt de altura; largura proporcional.
-                primeiro.add_run().add_picture(str(caminho), height=self.Pt(LOGO_ALTURA_PX * 72 / 96))
+                imagem = primeiro.add_run().add_picture(str(caminho), height=self.Pt(LOGO_ALTURA_PX * 72 / 96))
+                imagem._inline.docPr.set("descr", "Logotipo do perito")
             except Exception:
                 raise ErroExtrator("Logotipo inválido; use imagem PNG ou JPEG.") from None
             primeiro = cabecalho.add_paragraph()
@@ -185,11 +215,11 @@ class _Documento:
         for indice, linha in enumerate(perfil["cabecalho"]):
             paragrafo = primeiro if indice == 0 else cabecalho.add_paragraph()
             paragrafo.alignment = self.alinhamento.CENTER
-            paragrafo.paragraph_format.space_after = self.Pt(0)
+            paragrafo.paragraph_format.space_after = self.Pt(ESPACOS["linhas_cabecalho"])
             run = paragrafo.add_run(linha)
             run.bold = indice == 0
-            run.font.size = self.Pt(10 if indice == 0 else 9)
-        paragrafo.paragraph_format.space_after = self.Pt(12)
+            run.font.size = self.Pt(TAMANHOS["cabecalho_nome" if indice == 0 else "cabecalho"])
+        paragrafo.paragraph_format.space_after = self.Pt(ESPACOS["fim_cabecalho"])
 
     def _campo_word(self, paragrafo, codigo):
         from docx.oxml import OxmlElement
@@ -204,74 +234,80 @@ class _Documento:
                 elemento.set(qn("xml:space"), "preserve")
                 elemento.text = texto
             run._r.append(elemento)
-        run.font.size = self.Pt(8)
+        run.font.size = self.Pt(TAMANHOS["rodape"])
 
     def _rodape(self, secao):
         paragrafo = secao.footer.paragraphs[0]
         paragrafo.alignment = self.alinhamento.CENTER
-        paragrafo.add_run("Pré laudo, rascunho de trabalho  |  Página ").font.size = self.Pt(8)
+        paragrafo.add_run("Pré laudo, rascunho de trabalho  |  Página ").font.size = self.Pt(TAMANHOS["rodape"])
         self._campo_word(paragrafo, "PAGE")
-        paragrafo.add_run(" de ").font.size = self.Pt(8)
+        paragrafo.add_run(" de ").font.size = self.Pt(TAMANHOS["rodape"])
         self._campo_word(paragrafo, "NUMPAGES")
+
+    def _escrever(self, paragrafo, texto, negrito=False, italico=False, tamanho=None):
+        """Escreve o texto destacando [preencher] (amarelo) e ⟦trechos a conferir⟧ (cinza)."""
+        for pedaco in MARCADOR.split(str(texto)):
+            if not pedaco:
+                continue
+            conferir = pedaco.startswith("⟦")
+            run = paragrafo.add_run(pedaco.strip("⟦⟧") if conferir else pedaco)
+            run.bold = negrito
+            run.italic = italico
+            if tamanho:
+                run.font.size = self.Pt(TAMANHOS[tamanho])
+            if conferir:
+                run.font.highlight_color = self.destaques["conferir"]
+            elif pedaco == cp.CAMPO:
+                run.font.highlight_color = self.destaques["preencher"]
+
+    def titulo_documento(self, texto):
+        self.doc.add_paragraph(texto, style="Title")
 
     def titulo(self, texto, nivel=1):
         self.doc.add_heading(texto, level=nivel)
 
     def paragrafo(self, *partes, negrito=False, italico=False, tamanho=None, centro=False, justificar=True):
-        """Partes str; o marcador [preencher] e trechos entre ⟦ ⟧ ficam destacados."""
+        """Partes str; tamanho é uma chave de TAMANHOS (por exemplo "nota")."""
         paragrafo = self.doc.add_paragraph()
         if centro:
             paragrafo.alignment = self.alinhamento.CENTER
         elif justificar:
             paragrafo.alignment = self.alinhamento.JUSTIFY
         for parte in partes:
-            for pedaco in re.split(r"(\[preencher\]|⟦[^⟧]*⟧)", str(parte)):
-                if not pedaco:
-                    continue
-                destaque = pedaco == cp.CAMPO or pedaco.startswith("⟦")
-                run = paragrafo.add_run(pedaco.strip("⟦⟧") if pedaco.startswith("⟦") else pedaco)
-                run.bold = negrito
-                run.italic = italico
-                if tamanho:
-                    run.font.size = self.Pt(tamanho)
-                if destaque:
-                    run.font.highlight_color = self.amarelo
+            self._escrever(paragrafo, parte, negrito, italico, tamanho)
         return paragrafo
 
-    def tabela(self, cabecalho, linhas, larguras=None):
+    def _propriedade_linha(self, linha, nome):
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+        elemento = OxmlElement(nome)
+        elemento.set(qn("w:val"), "true")
+        linha._tr.get_or_add_trPr().append(elemento)
+
+    def tabela(self, cabecalho, linhas, larguras):
+        """Larguras em cm devem somar a largura útil da página (LARGURA_UTIL_CM)."""
+        if len(larguras) != len(cabecalho) or abs(sum(larguras) - LARGURA_UTIL_CM) > 0.01:
+            raise ValueError("Larguras da tabela incompatíveis com a largura útil da página.")
         tabela = self.doc.add_table(rows=1, cols=len(cabecalho))
         tabela.style = "Table Grid"
         for celula, texto in zip(tabela.rows[0].cells, cabecalho):
-            celula.text = ""
-            run = celula.paragraphs[0].add_run(texto)
-            run.bold = True
-            run.font.size = self.Pt(9.5)
+            self._escrever(celula.paragraphs[0], texto, negrito=True, tamanho="tabela")
+        # Cabeçalho repetido em cada página; nenhuma linha partida entre páginas.
+        self._propriedade_linha(tabela.rows[0], "w:tblHeader")
         for linha in linhas:
-            celulas = tabela.add_row().cells
-            for celula, texto in zip(celulas, linha):
-                paragrafo = celula.paragraphs[0]
-                for pedaco in re.split(r"(\[preencher\]|⟦[^⟧]*⟧)", str(texto)):
-                    if not pedaco:
-                        continue
-                    destaque = pedaco == cp.CAMPO or pedaco.startswith("⟦")
-                    run = paragrafo.add_run(pedaco.strip("⟦⟧") if pedaco.startswith("⟦") else pedaco)
-                    run.font.size = self.Pt(9.5)
-                    if destaque:
-                        run.font.highlight_color = self.amarelo
-        if larguras:
-            tabela.autofit = False
-            for coluna, largura in zip(tabela.columns, larguras):
-                coluna.width = self.Cm(largura)
-            for linha in tabela.rows:
-                for celula, largura in zip(linha.cells, larguras):
-                    celula.width = self.Cm(largura)
+            nova = tabela.add_row()
+            for celula, texto in zip(nova.cells, linha):
+                self._escrever(celula.paragraphs[0], texto, tamanho="tabela")
+        for linha in tabela.rows:
+            self._propriedade_linha(linha, "w:cantSplit")
+        tabela.autofit = False
+        for coluna, largura in zip(tabela.columns, larguras):
+            coluna.width = self.Cm(largura)
+        for linha in tabela.rows:
+            for celula, largura in zip(linha.cells, larguras):
+                celula.width = self.Cm(largura)
         self.doc.add_paragraph()
         return tabela
-
-    def lista(self, itens):
-        for item in itens:
-            paragrafo = self.paragrafo(item, justificar=True)
-            paragrafo.style = self.doc.styles["List Bullet"]
 
     def bytes(self):
         saida = io.BytesIO()
@@ -337,7 +373,7 @@ def _sintese(d, dados, modelo):
     d.paragrafo(
         "Os itens abaixo foram localizados por leitura automatizada dos autos e são alegações ou "
         "informações documentais, não fatos comprovados. Cada item indica a folha para conferência.",
-        italico=True, tamanho=9.5,
+        italico=True, tamanho="nota",
     )
     pedidos = _ativos(dados, "pedido_item")
     if pedidos:
@@ -390,7 +426,7 @@ def _dados_especificos(d, modelo):
         d.paragrafo("Benefícios recebidos (conferir CNIS e comunicações de decisão):", negrito=True)
         d.tabela(cp.TABELA_BENEFICIOS, [(cp.CAMPO,) * len(cp.TABELA_BENEFICIOS) for _ in range(3)],
                  larguras=(3, 2, 2.5, 2.5, 3, 3))
-        d.paragrafo(cp.NOTA_ESPECIES, italico=True, tamanho=9.5)
+        d.paragrafo(cp.NOTA_ESPECIES, italico=True, tamanho="nota")
     elif modelo == "trabalhista":
         d.titulo("4. HISTÓRIA OCUPACIONAL")
         d.tabela(("Item", "Registro"), cp.DADOS_TRABALHISTAS, larguras=(7, 9))
@@ -423,11 +459,11 @@ def _exame(d, dados, modelo):
     if cids:
         d.paragrafo(
             "Segmentos selecionados a partir dos CID citados nos autos (" + ", ".join(cids[:12]) + "). "
-            "Acrescentar outros segmentos se a queixa atual for diferente.", italico=True, tamanho=9.5,
+            "Acrescentar outros segmentos se a queixa atual for diferente.", italico=True, tamanho="nota",
         )
     else:
         d.paragrafo("Nenhum CID localizado: roteiro ortopédico geral. Remover os segmentos não pertinentes.",
-                    italico=True, tamanho=9.5)
+                    italico=True, tamanho="nota")
     for numero, nome in enumerate(blocos, 2):
         bloco = cp.BLOCOS_EXAME[nome]
         d.titulo(f'6.{numero} {bloco["titulo"]}', 2)
@@ -461,7 +497,7 @@ def _discussao(d, modelo):
         "relevante para o Juízo).",
     )
     d.titulo("8.2 Fundamentação técnica e normativa de apoio", 2)
-    d.paragrafo("Textos de apoio: manter apenas o que for pertinente ao caso.", italico=True, tamanho=9.5)
+    d.paragrafo("Textos de apoio: manter apenas o que for pertinente ao caso.", italico=True, tamanho="nota")
     for titulo, texto in cp.DISCUSSAO[modelo]:
         d.paragrafo(titulo, negrito=True)
         d.paragrafo(texto)
@@ -482,7 +518,7 @@ def _quesitos(d, dados, modelo):
     d.paragrafo(
         "Quesitos transcritos dos autos na redação e numeração originais. Os blocos foram delimitados "
         "automaticamente e podem continuar na página seguinte: conferir no original.",
-        italico=True, tamanho=9.5,
+        italico=True, tamanho="nota",
     )
     vistos = set()
     for origem, rotulo in ORIGENS_QUESITOS:
@@ -498,7 +534,7 @@ def _quesitos(d, dados, modelo):
         for c in grupo:
             titulo, itens = separar_quesitos(c["valor"])
             d.paragrafo(f'Transcrição de fls. {_faixa(c["fonte"])}' + (f": {titulo}" if titulo else ""),
-                        italico=True, tamanho=9.5)
+                        italico=True, tamanho="nota")
             for item in itens:
                 d.paragrafo(item, italico=True)
                 d.paragrafo("Resposta: ", cp.CAMPO)
@@ -519,7 +555,7 @@ def _encerramento(d, perfil):
 def _referencias(d, modelo):
     d.titulo("REFERÊNCIAS")
     for referencia in cp.REFERENCIAS["comum"] + cp.REFERENCIAS[modelo]:
-        d.paragrafo(referencia, tamanho=9.5, justificar=False)
+        d.paragrafo(referencia, tamanho="nota", justificar=False)
 
 
 def gerar_pre_laudo(dados, modelo, perfil, logo=None):
@@ -527,13 +563,9 @@ def gerar_pre_laudo(dados, modelo, perfil, logo=None):
     if modelo not in MODELOS:
         raise ErroExtrator("Modelo de pré-laudo inválido.")
     d = _Documento(perfil, logo or perfil.get("logo") or None)
-    d.paragrafo("PRÉ LAUDO MÉDICO PERICIAL", negrito=True, tamanho=15, centro=True)
-    d.paragrafo(TITULOS[modelo], tamanho=11.5, centro=True)
-    d.paragrafo(
-        "Rascunho de trabalho para o ato pericial. Campos em amarelo devem ser preenchidos ou conferidos. "
-        "Dados extraídos automaticamente indicam a folha de origem e não substituem a leitura dos autos.",
-        italico=True, tamanho=9, centro=True,
-    )
+    d.titulo_documento("PRÉ LAUDO MÉDICO PERICIAL")
+    d.paragrafo(TITULOS[modelo], tamanho="subtitulo", centro=True)
+    d.paragrafo(LEGENDA, italico=True, tamanho="aviso", centro=True)
     _preambulo(d, dados, perfil, modelo)
     _objeto(d, dados, modelo)
     _sintese(d, dados, modelo)
